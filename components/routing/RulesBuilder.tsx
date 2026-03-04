@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronUp, Loader2, Play, Plus, Save, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, GripVertical, Loader2, Play, Plus, Save, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -127,6 +127,9 @@ export function RulesBuilder() {
   const [testDryRun, setTestDryRun] = useState(true)
   const [testing, setTesting] = useState(false)
   const [lastTestResult, setLastTestResult] = useState<RoutingTestResult | null>(null)
+  const [savingOrder, setSavingOrder] = useState(false)
+  const [draggingRuleId, setDraggingRuleId] = useState<string | null>(null)
+  const [dragOverRuleId, setDragOverRuleId] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -156,6 +159,10 @@ export function RulesBuilder() {
   }, [])
 
   const sortedRules = useMemo(() => [...rules].sort((a, b) => a.priority - b.priority), [rules])
+  const hasPriorityChanges = useMemo(
+    () => sortedRules.some((rule, index) => rule.priority !== index),
+    [sortedRules]
+  )
 
   function addRule() {
     const id = nextTmpId()
@@ -209,6 +216,81 @@ export function RulesBuilder() {
         }
       })
     )
+  }
+
+  function moveRule(ruleId: string, direction: 'up' | 'down') {
+    setRules((prev) => {
+      const ordered = [...prev].sort((a, b) => a.priority - b.priority)
+      const index = ordered.findIndex((item) => item.id === ruleId)
+      if (index === -1) return prev
+
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      if (targetIndex < 0 || targetIndex >= ordered.length) return prev
+
+      const copy = [...ordered]
+      const current = copy[index]
+      copy[index] = copy[targetIndex]
+      copy[targetIndex] = current
+
+      return copy.map((item, idx) => ({ ...item, priority: idx }))
+    })
+  }
+
+  function moveRuleById(sourceRuleId: string, targetRuleId: string) {
+    if (sourceRuleId === targetRuleId) return
+    setRules((prev) => {
+      const ordered = [...prev].sort((a, b) => a.priority - b.priority)
+      const sourceIndex = ordered.findIndex((item) => item.id === sourceRuleId)
+      const targetIndex = ordered.findIndex((item) => item.id === targetRuleId)
+      if (sourceIndex < 0 || targetIndex < 0) return prev
+
+      const copy = [...ordered]
+      const [moved] = copy.splice(sourceIndex, 1)
+      copy.splice(targetIndex, 0, moved)
+      return copy.map((item, idx) => ({ ...item, priority: idx }))
+    })
+  }
+
+  async function saveOrder() {
+    const ordered = [...rules].sort((a, b) => a.priority - b.priority)
+    const hasUnsaved = ordered.some((rule) => rule.id.startsWith('tmp_'))
+    if (hasUnsaved) {
+      toast.error('Salve as regras novas antes de salvar a ordem.')
+      return
+    }
+
+    setSavingOrder(true)
+    try {
+      const responses = await Promise.all(
+        ordered.map(async (rule, index) => {
+          const res = await fetch('/api/routing/rules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: rule.id,
+              name: rule.name,
+              is_active: rule.is_active,
+              priority: index,
+              conditions: rule.conditions,
+              assignment: rule.assignment,
+            }),
+          })
+
+          if (!res.ok) {
+            throw new Error('Falha ao salvar ordem')
+          }
+
+          return normalizeRule((await res.json()) as Partial<RuleItem>)
+        })
+      )
+
+      setRules(responses)
+      toast.success('Ordem de prioridade salva.')
+    } catch {
+      toast.error('Nao foi possivel salvar a ordem.')
+    } finally {
+      setSavingOrder(false)
+    }
   }
 
   async function saveRule(rule: RuleItem) {
@@ -366,7 +448,11 @@ export function RulesBuilder() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" onClick={() => void saveOrder()} disabled={savingOrder || !hasPriorityChanges}>
+          {savingOrder ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />}
+          Salvar ordem
+        </Button>
         <Button onClick={addRule}>
           <Plus className="mr-1.5 h-4 w-4" />
           Nova regra
@@ -379,18 +465,77 @@ export function RulesBuilder() {
         </Card>
       ) : (
         sortedRules.map((rule) => (
-          <Card key={rule.id}>
+          <Card
+            key={rule.id}
+            onDragOver={(event) => {
+              event.preventDefault()
+              setDragOverRuleId(rule.id)
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              if (draggingRuleId) {
+                moveRuleById(draggingRuleId, rule.id)
+              }
+              setDraggingRuleId(null)
+              setDragOverRuleId(null)
+            }}
+            onDragEnd={() => {
+              setDraggingRuleId(null)
+              setDragOverRuleId(null)
+            }}
+            className={
+              dragOverRuleId === rule.id
+                ? 'ring-2 ring-primary/40'
+                : draggingRuleId === rule.id
+                  ? 'opacity-80'
+                  : undefined
+            }
+          >
             <CardHeader className="gap-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Arrastar regra"
+                    draggable
+                    onDragStart={() => {
+                      setDraggingRuleId(rule.id)
+                      setDragOverRuleId(rule.id)
+                    }}
+                    onDragEnd={() => {
+                      setDraggingRuleId(null)
+                      setDragOverRuleId(null)
+                    }}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </button>
                   <CardTitle className="truncate text-base">{rule.name}</CardTitle>
                   <Badge variant={rule.is_active ? 'default' : 'secondary'}>{rule.is_active ? 'Ativa' : 'Inativa'}</Badge>
                   <Badge variant="outline">Prioridade {rule.priority}</Badge>
                   <Badge variant="outline">{rule.conditions.length} condicao(oes)</Badge>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setExpandedRuleId((prev) => (prev === rule.id ? null : rule.id))}>
-                  {expandedRuleId === rule.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveRule(rule.id, 'up')}
+                    disabled={sortedRules[0]?.id === rule.id}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveRule(rule.id, 'down')}
+                    disabled={sortedRules[sortedRules.length - 1]?.id === rule.id}
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setExpandedRuleId((prev) => (prev === rule.id ? null : rule.id))}>
+                    {expandedRuleId === rule.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
 

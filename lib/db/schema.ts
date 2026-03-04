@@ -45,7 +45,7 @@ export const forms = pgTable('forms', {
   allowed_domains: text('allowed_domains').array().default([]),
   is_active: boolean('is_active').default(true),
   submit_redirect_url: text('submit_redirect_url'),
-  submit_message: text('submit_message').default('Obrigado! Recebemos suas informações.'),
+  submit_message: text('submit_message').default('Obrigado! Recebemos suas informaÃ§Ãµes.'),
   theme: jsonb('theme').default({}),
   total_views: integer('total_views').default(0),
   total_submissions: integer('total_submissions').default(0),
@@ -147,7 +147,7 @@ export const whatsappConfigs = pgTable('whatsapp_configs', {
   notify_number: text('notify_number').notNull(),
   min_score: integer('min_score').default(70),
   is_active: boolean('is_active').default(true),
-  message_template: text('message_template').default('🔥 Novo lead quente! {{name}} ({{email}}) - Score: {{score}}'),
+  message_template: text('message_template').default('ðŸ”¥ Novo lead quente! {{name}} ({{email}}) - Score: {{score}}'),
   created_at: timestamp('created_at').defaultNow(),
   updated_at: timestamp('updated_at').defaultNow(),
 })
@@ -308,6 +308,8 @@ export const emailCampaigns = pgTable('email_campaigns', {
   workspace_id: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
   template_id: uuid('template_id').references(() => emailTemplates.id),
   name: text('name').notNull(),
+  email_type: text('email_type').default('marketing'),
+  audience_filter: jsonb('audience_filter').default({}),
   status: text('status').default('draft'),
   total_recipients: integer('total_recipients').default(0),
   sent_count: integer('sent_count').default(0),
@@ -324,6 +326,7 @@ export const emailDeliveries = pgTable('email_deliveries', {
   id: uuid('id').primaryKey().defaultRandom(),
   campaign_id: uuid('campaign_id').references(() => emailCampaigns.id, { onDelete: 'cascade' }),
   lead_id: uuid('lead_id').references(() => leads.id),
+  dispatch_id: uuid('dispatch_id'),
   email: text('email').notNull(),
   status: text('status').default('pending'),
   resend_id: text('resend_id'),
@@ -331,6 +334,78 @@ export const emailDeliveries = pgTable('email_deliveries', {
   clicked_at: timestamp('clicked_at'),
   error: text('error'),
   sent_at: timestamp('sent_at'),
+})
+
+// Workspace-level e-mail settings and feature flags
+export const workspaceEmailSettings = pgTable('workspace_email_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspace_id: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).unique(),
+  provider: text('provider').default('resend'),
+  fallback_provider: text('fallback_provider'),
+  default_from_name: text('default_from_name'),
+  default_from_email: text('default_from_email'),
+  default_reply_to: text('default_reply_to'),
+  email_core_enabled: boolean('email_core_enabled').default(true),
+  email_recovery_enabled: boolean('email_recovery_enabled').default(true),
+  email_campaigns_enabled: boolean('email_campaigns_enabled').default(true),
+  marketing_requires_consent: boolean('marketing_requires_consent').default(true),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+})
+
+// Async dispatch queue for provider sends
+export const emailDispatches = pgTable('email_dispatches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspace_id: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
+  lead_id: uuid('lead_id').references(() => leads.id, { onDelete: 'set null' }),
+  draft_id: uuid('draft_id').references(() => formSessionDrafts.id, { onDelete: 'set null' }),
+  campaign_id: uuid('campaign_id').references(() => emailCampaigns.id, { onDelete: 'set null' }),
+  template_id: uuid('template_id').references(() => emailTemplates.id, { onDelete: 'set null' }),
+  trigger_type: text('trigger_type').notNull().default('lead_received'),
+  email_type: text('email_type').notNull().default('transactional'),
+  recipient_email: text('recipient_email').notNull(),
+  subject: text('subject').notNull(),
+  blocks: jsonb('blocks').notNull().default([]),
+  variables: jsonb('variables').default({}),
+  provider: text('provider').default('resend'),
+  provider_message_id: text('provider_message_id'),
+  idempotency_key: text('idempotency_key').notNull().unique(),
+  status: text('status').notNull().default('queued'),
+  attempts: integer('attempts').default(0),
+  max_attempts: integer('max_attempts').default(5),
+  next_attempt_at: timestamp('next_attempt_at').defaultNow(),
+  last_attempt_at: timestamp('last_attempt_at'),
+  sent_at: timestamp('sent_at'),
+  error: text('error'),
+  response: jsonb('response'),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+})
+
+// Provider webhook/open-click-bounce events
+export const emailProviderEvents = pgTable('email_provider_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspace_id: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
+  dispatch_id: uuid('dispatch_id').references(() => emailDispatches.id, { onDelete: 'set null' }),
+  provider: text('provider').notNull().default('resend'),
+  provider_message_id: text('provider_message_id'),
+  event_type: text('event_type').notNull(),
+  recipient_email: text('recipient_email'),
+  payload: jsonb('payload'),
+  occurred_at: timestamp('occurred_at').defaultNow(),
+  created_at: timestamp('created_at').defaultNow(),
+})
+
+// Suppression list for marketing sends
+export const emailSuppressions = pgTable('email_suppressions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspace_id: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  reason: text('reason').default('unsubscribe'),
+  source: text('source').default('user'),
+  is_active: boolean('is_active').default(true),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
 })
 
 // Webhook destinations

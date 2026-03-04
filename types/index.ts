@@ -139,6 +139,77 @@ export interface EmailBlock {
   unsubscribeUrl?: string
 }
 
+export type EmailTriggerType = 'lead_received' | 'abandoned_form_recovery' | 'campaign_send'
+export type EmailDispatchStatus = 'queued' | 'processing' | 'retrying' | 'sent' | 'failed' | 'skipped'
+
+export interface EmailTemplate {
+  id: string
+  workspace_id: string
+  name: string
+  subject: string
+  blocks: EmailBlock[]
+  from_name: string | null
+  from_email: string | null
+  reply_to: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EmailDispatch {
+  id: string
+  workspace_id: string
+  lead_id: string | null
+  draft_id: string | null
+  campaign_id: string | null
+  template_id: string | null
+  trigger_type: EmailTriggerType
+  email_type: 'transactional' | 'marketing'
+  recipient_email: string
+  subject: string
+  blocks: EmailBlock[]
+  variables: JsonObject
+  provider: string | null
+  provider_message_id: string | null
+  idempotency_key: string
+  status: EmailDispatchStatus
+  attempts: number
+  max_attempts: number
+  next_attempt_at: string | null
+  last_attempt_at: string | null
+  sent_at: string | null
+  error: string | null
+  response: JsonValue
+  created_at: string
+  updated_at: string
+}
+
+export interface EmailProviderEvent {
+  id: string
+  workspace_id: string
+  dispatch_id: string | null
+  provider: string
+  provider_message_id: string | null
+  event_type: string
+  recipient_email: string | null
+  payload: JsonValue
+  occurred_at: string | null
+  created_at: string
+}
+
+export interface WorkspaceEmailSettings {
+  id: string
+  workspace_id: string
+  provider: string | null
+  fallback_provider: string | null
+  default_from_name: string | null
+  default_from_email: string | null
+  default_reply_to: string | null
+  email_core_enabled: boolean
+  email_recovery_enabled: boolean
+  email_campaigns_enabled: boolean
+  marketing_requires_consent: boolean
+}
+
 // Webhook types
 export interface WebhookDestination {
   id: string

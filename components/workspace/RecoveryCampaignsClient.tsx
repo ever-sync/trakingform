@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -103,7 +103,7 @@ export function RecoveryCampaignsClient() {
       })
       if (!res.ok) throw new Error('Falha ao executar')
       const data = await res.json()
-      toast.success(`Recovery executado: ${data.sent ?? 0} envio(s).`)
+      toast.success(`Recovery executado: ${data.sent ?? 0} envio(s) + ${data.queuedEmail ?? 0} e-mail(s) na fila.`)
     } catch {
       toast.error('Nao foi possivel executar recovery.')
     }

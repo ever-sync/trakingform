@@ -1,16 +1,23 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
-  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { Mail, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 interface Template {
   id: string
@@ -29,8 +36,8 @@ export function EmailTemplatesClient({ templates: initial }: { templates: Templa
     setDeletingId(id)
     try {
       const res = await fetch(`/api/email-templates/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error()
-      setTemplates(prev => prev.filter(t => t.id !== id))
+      if (!res.ok) throw new Error('delete_failed')
+      setTemplates((prev) => prev.filter((template) => template.id !== id))
       toast.success('Template removido')
     } catch {
       toast.error('Erro ao remover template')
@@ -41,32 +48,37 @@ export function EmailTemplatesClient({ templates: initial }: { templates: Templa
 
   return (
     <div className="space-y-3">
-      {templates.map(template => (
+      {templates.map((template) => (
         <Card key={template.id}>
           <CardContent className="py-4">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
                   <Mail className="h-4 w-4 text-indigo-600" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{template.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{template.subject}</p>
-                  {template.from_email && (
+                  <p className="truncate font-medium text-gray-900">{template.name}</p>
+                  <p className="truncate text-sm text-muted-foreground">{template.subject}</p>
+                  {template.from_email ? (
                     <p className="text-xs text-muted-foreground">
                       De: {template.from_name ? `${template.from_name} <${template.from_email}>` : template.from_email}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+
+              <div className="flex shrink-0 items-center gap-2">
                 <Badge variant="outline" className="text-xs">{template.created_at}</Badge>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/emails/${template.id}`}>Editar</Link>
+                </Button>
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                      className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
                       disabled={deletingId === template.id}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -76,7 +88,7 @@ export function EmailTemplatesClient({ templates: initial }: { templates: Templa
                     <AlertDialogHeader>
                       <AlertDialogTitle>Remover template?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        O template &quot;{template.name}&quot; será removido permanentemente.
+                        O template &quot;{template.name}&quot; sera removido permanentemente.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

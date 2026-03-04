@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -30,6 +30,7 @@ const bottomNavigation = [
   { name: 'Routing', href: '/workspace/routing', icon: Users },
   { name: 'Ads', href: '/workspace/ads', icon: BarChart3 },
   { name: 'Recovery', href: '/workspace/recovery', icon: Mail },
+  { name: 'Email', href: '/workspace/email', icon: Mail },
   { name: 'Compliance', href: '/workspace/compliance', icon: Settings },
   { name: 'Operações', href: '/workspace/operations', icon: BarChart3 },
   { name: 'Plano & Faturamento', href: '/billing', icon: CreditCard },

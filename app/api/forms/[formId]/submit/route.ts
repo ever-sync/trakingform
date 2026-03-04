@@ -13,6 +13,7 @@ import { calculateEnhancedLeadScore } from '@/lib/services/ai-lead-score'
 import { validateFormSubmission } from '@/lib/services/form-validator'
 import { assignLeadByRoutingRules } from '@/lib/services/routing/engine'
 import { buildAttributionSnapshot, recordLeadEvent } from '@/lib/services/lead-events'
+import { enqueueEmailDispatch, processPendingEmailDispatches } from '@/lib/services/email/dispatcher'
 import { FormField } from '@/types'
 
 function getActiveFields(fields: unknown, settings: unknown): FormField[] {
@@ -119,7 +120,7 @@ export async function POST(
 
   const body = (await req.json()) as Record<string, unknown>
 
-  // Honeypot check — silent reject bots
+  // Honeypot check â€” silent reject bots
   if (body._hp) {
     return NextResponse.json({ success: true, message: form.submit_message })
   }
@@ -287,7 +288,7 @@ export async function POST(
       await db.insert(leadEvents).values({
         lead_id: lead.id,
         type: 'created',
-        description: `Lead capturado via formulário "${form.name}"`,
+        description: `Lead capturado via formulÃ¡rio "${form.name}"`,
         metadata: utmSource ? { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign } : undefined,
       })
       await recordLeadEvent({
@@ -325,7 +326,7 @@ export async function POST(
     await db.insert(leadEvents).values({
       lead_id: lead.id,
       type: 'created',
-      description: `Lead capturado via formulário "${form.name}"`,
+      description: `Lead capturado via formulÃ¡rio "${form.name}"`,
       metadata: utmSource ? { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign } : undefined,
     })
     await recordLeadEvent({
@@ -449,6 +450,35 @@ export async function POST(
   }
 
   // Async: enrich IP + dispatch webhooks + WhatsApp alert
+  const emailDispatchPromise = email
+    ? enqueueEmailDispatch({
+        workspaceId: form.workspace_id!,
+        leadId: lead.id,
+        recipientEmail: email,
+        subject: `Recebemos seu contato - ${form.name}`,
+        blocks: [
+          {
+            id: 'lead_received_message',
+            type: 'text',
+            content: `${form.submit_message ?? 'Recebemos suas informacoes. Em breve entraremos em contato.'}\n\nLead: {{name}}\nEmail: {{email}}`,
+          },
+        ],
+        variables: Object.entries(cleanData as Record<string, unknown>).reduce<Record<string, string>>((acc, [key, value]) => {
+          if (value === null || value === undefined) return acc
+          acc[key] = String(value)
+          return acc
+        }, {
+          email,
+          name: typeof cleanData.name === 'string' ? cleanData.name : 'Lead',
+        }),
+        triggerType: 'lead_received',
+        emailType: 'transactional',
+        idempotencyKey: `lead_received:${lead.id}:${email.toLowerCase()}`,
+      })
+        .then(() => processPendingEmailDispatches({ workspaceId: form.workspace_id!, limit: 25 }))
+        .catch(console.error)
+    : Promise.resolve(null)
+
   Promise.all([
     enrichLeadWithIP(lead.id, ip, userAgent),
     assignLeadByRoutingRules({
@@ -466,6 +496,7 @@ export async function POST(
       leadData: cleanData as Record<string, unknown>,
       score: leadScore,
     }),
+    emailDispatchPromise,
   ]).catch(console.error)
 
   // Track A/B variant submission

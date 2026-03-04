@@ -1,4 +1,4 @@
-﻿import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,6 +58,9 @@ export default function WorkspacePage() {
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/workspace/recovery">Recovery</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/workspace/email">Email</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/workspace/routing">Routing</Link>
