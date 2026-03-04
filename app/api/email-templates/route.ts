@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     from_name?: string
     from_email?: string
     reply_to?: string
+    blocks?: unknown
   }
 
   const name = body.name?.trim() ?? ''
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
       from_name: body.from_name?.trim() || null,
       from_email: fromEmail || null,
       reply_to: replyTo || null,
-      blocks: [],
+      blocks: Array.isArray(body.blocks) ? body.blocks : [],
     })
     .returning()
 

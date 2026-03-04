@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 import { db } from '@/lib/db'
-import { forms, leads, leadConsents, leadEvents, formSessionDrafts } from '@/lib/db/schema'
+import { emailTemplates, forms, leads, leadConsents, leadEvents, formSessionDrafts, opsAlerts } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import { enrichLeadWithIP } from '@/lib/services/ip-enrichment'
 import { detectDuplicate } from '@/lib/services/duplicate-detector'
@@ -450,13 +450,36 @@ export async function POST(
   }
 
   // Async: enrich IP + dispatch webhooks + WhatsApp alert
+  let selectedTemplate: typeof emailTemplates.$inferSelect | null = null
+  if (email && form.email_template_id) {
+    const [templateRow] = await db
+      .select()
+      .from(emailTemplates)
+      .where(and(eq(emailTemplates.id, form.email_template_id), eq(emailTemplates.workspace_id, form.workspace_id!)))
+      .limit(1)
+    selectedTemplate = templateRow ?? null
+
+    if (!selectedTemplate) {
+      db.insert(opsAlerts).values({
+        workspace_id: form.workspace_id!,
+        source: 'email_dispatch',
+        severity: 'warning',
+        title: 'Template de e-mail nao encontrado',
+        message: `Form ${form.id} referencia um template inexistente.`,
+        payload: { form_id: form.id, email_template_id: form.email_template_id },
+      }).catch(console.error)
+    }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const emailDispatchPromise = email
     ? enqueueEmailDispatch({
         workspaceId: form.workspace_id!,
         leadId: lead.id,
+        templateId: selectedTemplate?.id ?? null,
         recipientEmail: email,
-        subject: `Recebemos seu contato - ${form.name}`,
-        blocks: [
+        subject: selectedTemplate?.subject ?? `Recebemos seu contato - ${form.name}`,
+        blocks: Array.isArray(selectedTemplate?.blocks) ? selectedTemplate!.blocks : [
           {
             id: 'lead_received_message',
             type: 'text',
@@ -470,10 +493,18 @@ export async function POST(
         }, {
           email,
           name: typeof cleanData.name === 'string' ? cleanData.name : 'Lead',
+          form_name: form.name,
+          submit_message: form.submit_message ?? '',
+          utm_source: utmSource ?? '',
+          created_at: new Date().toISOString(),
+          unsubscribe_url: `${appUrl}/api/email/unsubscribe?workspace=${form.workspace_id}&email=${encodeURIComponent(email)}`,
+          ...(selectedTemplate?.from_name ? { from_name: selectedTemplate.from_name } : {}),
+          ...(selectedTemplate?.from_email ? { from_email: selectedTemplate.from_email } : {}),
+          ...(selectedTemplate?.reply_to ? { reply_to: selectedTemplate.reply_to } : {}),
         }),
         triggerType: 'lead_received',
         emailType: 'transactional',
-        idempotencyKey: `lead_received:${lead.id}:${email.toLowerCase()}`,
+        idempotencyKey: `lead_received:${lead.id}:${email.toLowerCase()}:${selectedTemplate?.id ?? 'default'}`,
       })
         .then(() => processPendingEmailDispatches({ workspaceId: form.workspace_id!, limit: 25 }))
         .catch(console.error)

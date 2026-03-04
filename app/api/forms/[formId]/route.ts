@@ -70,6 +70,7 @@ export async function PUT(
     | 'submit_redirect_url'
     | 'theme'
     | 'allowed_domains'
+    | 'email_template_id'
   >> & { publish?: boolean }
 
   const body = (await req.json()) as FormUpdatePayload & {
@@ -96,6 +97,7 @@ export async function PUT(
   if (body.submit_redirect_url !== undefined) updateData.submit_redirect_url = body.submit_redirect_url
   if (body.theme !== undefined) updateData.theme = body.theme
   if (body.allowed_domains !== undefined) updateData.allowed_domains = body.allowed_domains
+  if (body.email_template_id !== undefined) updateData.email_template_id = body.email_template_id
 
   if (body.fields !== undefined || body.publish) {
     const nextFields = (body.fields ?? form.fields) as FormField[]

@@ -42,6 +42,7 @@ interface FormBuilderProps {
   initialSubmitRedirectUrl?: string | null
   initialSubmitMessage?: string | null
   initialTheme?: unknown
+  initialEmailTemplateId?: string | null
 }
 
 type BuilderVersionState = {
@@ -302,6 +303,7 @@ export function FormBuilder({
   initialSubmitRedirectUrl,
   initialSubmitMessage,
   initialTheme,
+  initialEmailTemplateId,
 }: FormBuilderProps) {
   const [formName, setFormName] = useState(initialName)
   const [fields, setFields] = useState<FormField[]>(initialFields)
@@ -315,6 +317,8 @@ export function FormBuilder({
   const [submitRedirectUrl, setSubmitRedirectUrl] = useState(initialSubmitRedirectUrl ?? '')
   const [submitMessage, setSubmitMessage] = useState(initialSubmitMessage ?? 'Obrigado! Recebemos suas informacoes.')
   const [theme, setTheme] = useState<BuilderThemeState>(() => parseTheme(initialTheme))
+  const [emailTemplateId, setEmailTemplateId] = useState<string>(initialEmailTemplateId ?? '')
+  const [emailTemplates, setEmailTemplates] = useState<Array<{ id: string; name: string }>>([])
   const [versionState, setVersionState] = useState<BuilderVersionState>(() => parseBuilderVersionState(initialSettings))
   const [multiStep, setMultiStep] = useState(() => parseMultiStepSettings(initialSettings).multiStep)
   const [showProgressBar, setShowProgressBar] = useState(() => parseMultiStepSettings(initialSettings).showProgressBar)
@@ -439,6 +443,7 @@ export function FormBuilder({
             publish: !!publish,
             submit_redirect_url: submitRedirectUrl.trim() || null,
             submit_message: submitMessage.trim() || 'Obrigado!',
+            email_template_id: emailTemplateId || null,
             theme,
             multiStepConfig: multiStep ? { multiStep, showProgressBar, stepConfig: steps } : { multiStep: false },
             progressiveProfiling,
@@ -472,6 +477,7 @@ export function FormBuilder({
       formName,
       submitMessage,
       submitRedirectUrl,
+      emailTemplateId,
       theme,
       validation.hasErrors,
       multiStep,
@@ -494,6 +500,22 @@ export function FormBuilder({
 
     return () => clearTimeout(saveTimerRef.current)
   }, [dirty, saveForm])
+
+  useEffect(() => {
+    fetch('/api/email-templates')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.templates)) {
+          setEmailTemplates(data.templates.map((tpl: { id: string; name: string }) => ({
+            id: tpl.id,
+            name: tpl.name,
+          })))
+        }
+      })
+      .catch(() => {
+        setEmailTemplates([])
+      })
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -708,6 +730,32 @@ export function FormBuilder({
                       markDirty()
                     }}
                   />
+                </div>
+                <div className="space-y-1 md:col-span-2 xl:col-span-2">
+                  <Label className="text-xs">Template de e-mail (envio do formulario)</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      className="h-10 w-full max-w-[320px] rounded-md border bg-background px-3 text-sm"
+                      value={emailTemplateId}
+                      onChange={(event) => {
+                        setEmailTemplateId(event.target.value)
+                        markDirty()
+                      }}
+                    >
+                      <option value="">Sem template</option>
+                      {emailTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>{template.name}</option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open('/emails/new', '_blank')}
+                    >
+                      Criar novo template
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Cor do botao</Label>

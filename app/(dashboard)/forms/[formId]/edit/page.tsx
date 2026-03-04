@@ -47,6 +47,7 @@ export default async function FormEditPage({
           initialSubmitRedirectUrl={form.submit_redirect_url}
           initialSubmitMessage={form.submit_message}
           initialTheme={form.theme}
+          initialEmailTemplateId={form.email_template_id}
         />
       </div>
     </div>

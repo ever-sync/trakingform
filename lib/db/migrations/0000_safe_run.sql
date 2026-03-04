@@ -243,6 +243,9 @@ ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "first_response_at" timestamp;
 ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "owner_id" uuid;
 ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "attribution_snapshot" jsonb DEFAULT '{}'::jsonb;
 
+-- New form email template column
+ALTER TABLE "forms" ADD COLUMN IF NOT EXISTS "email_template_id" uuid;
+
 -- Conversion stage history
 CREATE TABLE IF NOT EXISTS "lead_stage_history" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -428,6 +431,7 @@ DO $$ BEGIN ALTER TABLE "lead_consents" ADD CONSTRAINT "lead_consents_workspace_
 DO $$ BEGIN ALTER TABLE "lead_consents" ADD CONSTRAINT "lead_consents_lead_id_fk" FOREIGN KEY ("lead_id") REFERENCES "leads"("id") ON DELETE cascade; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE "lead_consents" ADD CONSTRAINT "lead_consents_form_id_fk" FOREIGN KEY ("form_id") REFERENCES "forms"("id") ON DELETE set null; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE "ops_alerts" ADD CONSTRAINT "ops_alerts_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "workspaces"("id") ON DELETE cascade; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE "forms" ADD CONSTRAINT "forms_email_template_id_fk" FOREIGN KEY ("email_template_id") REFERENCES "email_templates"("id") ON DELETE set null; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- New indexes
 CREATE INDEX IF NOT EXISTS "lead_stage_history_workspace_changed_at_idx" ON "lead_stage_history" ("workspace_id", "changed_at" DESC);
@@ -436,6 +440,7 @@ CREATE INDEX IF NOT EXISTS "lead_routing_rules_v2_workspace_priority_idx" ON "le
 CREATE INDEX IF NOT EXISTS "form_session_drafts_workspace_status_updated_idx" ON "form_session_drafts" ("workspace_id", "status", "updated_at" DESC);
 CREATE INDEX IF NOT EXISTS "lead_consents_workspace_created_at_idx" ON "lead_consents" ("workspace_id", "created_at" DESC);
 CREATE INDEX IF NOT EXISTS "ops_alerts_workspace_resolved_idx" ON "ops_alerts" ("workspace_id", "is_resolved");
+CREATE INDEX IF NOT EXISTS "forms_workspace_email_template_idx" ON "forms" ("workspace_id", "email_template_id");
 
 -- ============================================================
 -- Email platform foundation (dispatch queue + provider events)

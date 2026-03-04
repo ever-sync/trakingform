@@ -42,69 +42,81 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Criar conta</CardTitle>
-        <CardDescription>Comece grátis, sem cartão de crédito</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleRegister}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Seu nome</Label>
-            <Input
-              id="name"
-              placeholder="João Silva"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-            />
+    <div className="w-full min-h-screen flex items-center justify-center p-4 relative z-10">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">L</span>
+            </div>
+            <span className="text-xl font-bold text-gray-900">LeadForm</span>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="workspace">Nome do workspace</Label>
-            <Input
-              id="workspace"
-              placeholder="Minha Empresa"
-              value={workspaceName}
-              onChange={e => setWorkspaceName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="voce@empresa.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Mínimo 8 caracteres"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Criando conta...' : 'Criar conta grátis'}
-          </Button>
-          <p className="text-sm text-center text-muted-foreground">
-            Já tem conta?{' '}
-            <Link href="/login" className="text-indigo-600 hover:underline font-medium">
-              Entrar
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Criar conta</CardTitle>
+            <CardDescription>Comece grátis, sem cartão de crédito</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleRegister}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Seu nome</Label>
+                <Input
+                  id="name"
+                  placeholder="João Silva"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="workspace">Nome do workspace</Label>
+                <Input
+                  id="workspace"
+                  placeholder="Minha Empresa"
+                  value={workspaceName}
+                  onChange={e => setWorkspaceName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="voce@empresa.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  minLength={8}
+                  required
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Criando conta...' : 'Criar conta grátis'}
+              </Button>
+              <p className="text-sm text-center text-muted-foreground">
+                Já tem conta?{' '}
+                <Link href="/login" className="text-indigo-600 hover:underline font-medium">
+                  Entrar
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    </div>
   )
 }

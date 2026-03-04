@@ -44,6 +44,7 @@ export const forms = pgTable('forms', {
   settings: jsonb('settings').notNull().default({}),
   allowed_domains: text('allowed_domains').array().default([]),
   is_active: boolean('is_active').default(true),
+  email_template_id: uuid('email_template_id').references(() => emailTemplates.id, { onDelete: 'set null' }),
   submit_redirect_url: text('submit_redirect_url'),
   submit_message: text('submit_message').default('Obrigado! Recebemos suas informaÃ§Ãµes.'),
   theme: jsonb('theme').default({}),

@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
-import { forms, leads, formVariants } from '@/lib/db/schema'
+import { emailTemplates, forms, leads, formVariants } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { getOrCreateWorkspace } from '@/lib/db/queries/workspace'
 import { Button } from '@/components/ui/button'
@@ -92,6 +92,15 @@ export default async function FormDetailPage({
     .where(eq(formVariants.form_id, formId))
     .orderBy(desc(formVariants.created_at))
 
+  const emailTemplate = form.email_template_id
+    ? await db
+        .select({ id: emailTemplates.id, name: emailTemplates.name, subject: emailTemplates.subject })
+        .from(emailTemplates)
+        .where(eq(emailTemplates.id, form.email_template_id))
+        .limit(1)
+        .then((rows) => rows[0] ?? null)
+    : null
+
   const conversionRate = (form.total_views ?? 0) > 0
     ? (((form.total_submissions ?? 0) / (form.total_views ?? 1)) * 100).toFixed(1)
     : '0.0'
@@ -179,6 +188,25 @@ export default async function FormDetailPage({
               </Card>
             ))}
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Template de e-mail</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {emailTemplate?.name ?? 'Sem template definido'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {emailTemplate?.subject ?? 'Configure um template para enviar e-mail automatico ao lead.'}
+                </p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href={`/forms/${formId}/edit`}>Editar formulario</Link>
+              </Button>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
