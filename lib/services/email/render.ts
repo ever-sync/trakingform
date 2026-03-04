@@ -1,4 +1,12 @@
+import DOMPurify from 'isomorphic-dompurify'
 import { EmailBlock } from '@/types'
+
+const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'u', 'span', 'b', 'i']
+const ALLOWED_ATTR = ['href', 'target', 'rel', 'style', 'class']
+
+function sanitize(html: string): string {
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR })
+}
 
 export function replaceTemplateVariables(text: string, variables: Record<string, string>): string {
   return text.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) => variables[key] ?? '')
@@ -7,17 +15,21 @@ export function replaceTemplateVariables(text: string, variables: Record<string,
 function renderBlock(block: EmailBlock, vars: Record<string, string>): string {
   switch (block.type) {
     case 'header':
-      return `<div style="background:${block.backgroundColor || '#111827'};padding:24px;text-align:center;">${block.logoUrl ? `<img src="${block.logoUrl}" height="40" alt="logo"/>` : ''}</div>`
+      return `<div style="background:${block.backgroundColor || '#111827'};padding:24px;text-align:center;">${block.logoUrl ? `<img src="${sanitize(block.logoUrl)}" height="40" alt="logo"/>` : ''}</div>`
     case 'text':
-      return `<div style="padding:24px;font-family:Arial,sans-serif;font-size:16px;color:#111827;line-height:1.6;">${replaceTemplateVariables(block.content || '', vars)}</div>`
+      return `<div style="padding:24px;font-family:Arial,sans-serif;font-size:16px;color:#111827;line-height:1.6;">${sanitize(replaceTemplateVariables(block.content || '', vars))}</div>`
     case 'button':
-      return `<div style="padding:16px;text-align:center;"><a href="${replaceTemplateVariables(block.url || '#', vars)}" style="background:${block.color || '#4f46e5'};color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-family:Arial,sans-serif;font-weight:600;display:inline-block;">${replaceTemplateVariables(block.label || 'Clique aqui', vars)}</a></div>`
+      return `<div style="padding:16px;text-align:center;"><a href="${replaceTemplateVariables(block.url || '#', vars)}" style="background:${block.color || '#4f46e5'};color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-family:Arial,sans-serif;font-weight:600;display:inline-block;">${sanitize(replaceTemplateVariables(block.label || 'Clique aqui', vars))}</a></div>`
     case 'image':
-      return `<div style="padding:16px;text-align:center;"><img src="${block.src || ''}" alt="${block.alt || ''}" style="max-width:100%;border-radius:8px;"/></div>`
-    case 'divider':
-      return '<hr style="border:none;border-top:1px solid #e5e7eb;margin:8px 24px;"/>'
+      return `<div style="padding:16px;text-align:center;"><img src="${block.src || ''}" alt="${sanitize(block.alt || '')}" style="max-width:100%;border-radius:8px;"/></div>`
+    case 'divider': {
+      const dColor = block.dividerColor || '#e5e7eb'
+      const dThickness = block.dividerThickness ?? 1
+      const dMargin = block.dividerMargin ?? 8
+      return `<hr style="border:none;border-top:${dThickness}px solid ${dColor};margin:${dMargin}px 24px;"/>`
+    }
     case 'footer':
-      return `<div style="padding:24px;text-align:center;font-size:12px;color:#6b7280;font-family:Arial,sans-serif;">${replaceTemplateVariables(block.content || '', vars)}${block.unsubscribeUrl ? `<br/><a href="${replaceTemplateVariables(block.unsubscribeUrl, vars)}" style="color:#6b7280;">Descadastrar</a>` : ''}</div>`
+      return `<div style="padding:24px;text-align:center;font-size:12px;color:#6b7280;font-family:Arial,sans-serif;">${sanitize(replaceTemplateVariables(block.content || '', vars))}${block.unsubscribeUrl ? `<br/><a href="${replaceTemplateVariables(block.unsubscribeUrl, vars)}" style="color:#6b7280;">Descadastrar</a>` : ''}</div>`
     default:
       return ''
   }

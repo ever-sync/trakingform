@@ -137,6 +137,9 @@ export interface EmailBlock {
   url?: string
   color?: string
   unsubscribeUrl?: string
+  dividerColor?: string
+  dividerThickness?: number
+  dividerMargin?: number
 }
 
 export type EmailTriggerType = 'lead_received' | 'abandoned_form_recovery' | 'campaign_send'

@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { EmailTemplateBuilder } from '@/components/emails/EmailTemplateBuilder'
 import { EmailBlock } from '@/types'
+import { isValidEmail } from '@/lib/utils'
 
 interface TemplatePayload {
   id: string
@@ -17,10 +18,6 @@ interface TemplatePayload {
   from_email: string | null
   reply_to: string | null
   blocks: unknown
-}
-
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
 export default function EditEmailTemplatePage() {
@@ -144,6 +141,15 @@ export default function EditEmailTemplatePage() {
         initialBlocks={Array.isArray(template.blocks) ? (template.blocks as EmailBlock[]) : []}
         onSave={saveTemplate}
         onCancel={() => router.push('/emails')}
+        templateId={templateId}
+        onAutoSave={async (payload) => {
+          const res = await fetch(`/api/email-templates/${templateId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+          if (!res.ok) throw new Error('Falha ao auto-salvar')
+        }}
       />
     </div>
   )

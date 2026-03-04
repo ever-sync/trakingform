@@ -1,15 +1,19 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useUndoRedo } from '@/hooks/useUndoRedo'
 import { toast } from 'sonner'
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   KeyboardSensor,
   closestCenter,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -20,6 +24,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { EmailBlock } from '@/types'
+import { isValidUrl, isValidEmail } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,7 +33,17 @@ import { EmailBlocksPalette } from '@/components/emails/EmailBlocksPalette'
 import { EmailBlockEditor } from '@/components/emails/EmailBlockEditor'
 import { renderEmailBlocks } from '@/lib/services/email/render'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Trash2, Copy } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { GripVertical, Trash2, Copy, Monitor, Smartphone, Undo2, Redo2, Loader2 } from 'lucide-react'
 
 type TemplateFormState = {
   name: string
@@ -107,14 +122,6 @@ function buildBlock(type: EmailBlock['type']): EmailBlock {
   return { id, type }
 }
 
-function isValidUrl(value: string) {
-  try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
 
 function validateBlocks(blocks: EmailBlock[]) {
   const errors: string[] = []
@@ -154,10 +161,6 @@ function validateBlocks(blocks: EmailBlock[]) {
   return errors
 }
 
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-}
-
 function getFormErrors(form: TemplateFormState) {
   const errors: string[] = []
   if (form.subject.trim().length < 5) {
@@ -178,21 +181,34 @@ export function EmailTemplateBuilder({
   saving,
   onSave,
   onCancel,
+  templateId,
+  onAutoSave,
 }: {
   initialForm: TemplateFormState
   initialBlocks?: EmailBlock[]
   saving?: boolean
   onSave: (payload: TemplateFormState & { blocks: EmailBlock[] }) => void
   onCancel?: () => void
+  templateId?: string
+  onAutoSave?: (payload: TemplateFormState & { blocks: EmailBlock[] }) => Promise<void>
 }) {
   const [form, setForm] = useState<TemplateFormState>(initialForm)
-  const [blocks, setBlocks] = useState<EmailBlock[]>(initialBlocks?.length ? initialBlocks : DEFAULT_BLOCKS)
-  const [selectedId, setSelectedId] = useState<string | null>(blocks[0]?.id ?? null)
+  const initialBlocksValue = initialBlocks?.length ? initialBlocks : DEFAULT_BLOCKS
+  const { value: blocks, set: setBlocks, undo, redo, canUndo, canRedo } = useUndoRedo<EmailBlock[]>(initialBlocksValue)
+  const [selectedId, setSelectedId] = useState<string | null>(initialBlocksValue[0]?.id ?? null)
   const [tab, setTab] = useState<'editor' | 'preview'>('editor')
   const [presetId, setPresetId] = useState('')
   const [previewVars, setPreviewVars] = useState<Record<string, string>>(DEFAULT_PREVIEW_VARS)
   const [blockErrors, setBlockErrors] = useState<string[]>([])
   const [formErrors, setFormErrors] = useState<string[]>([])
+  const [showPresetConfirm, setShowPresetConfirm] = useState(false)
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop')
+  const [dirty, setDirty] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const [testEmail, setTestEmail] = useState('')
+  const [sendingTest, setSendingTest] = useState(false)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
   const selectedBlock = blocks.find((block) => block.id === selectedId) ?? null
 
@@ -203,21 +219,89 @@ export function EmailTemplateBuilder({
 
   const previewHtml = useMemo(() => renderEmailBlocks(blocks, previewVars), [blocks, previewVars])
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        redo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undo, redo])
 
-    setBlocks((prev) => {
-      const oldIndex = prev.findIndex((block) => block.id === active.id)
-      const newIndex = prev.findIndex((block) => block.id === over.id)
-      return arrayMove(prev, oldIndex, newIndex)
-    })
+  // Auto-save (only on edit page)
+  useEffect(() => {
+    if (!dirty || !templateId || !onAutoSave) return
+
+    clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      setSaveStatus('saving')
+      try {
+        await onAutoSave({ ...form, blocks })
+        setSaveStatus('saved')
+        setDirty(false)
+      } catch {
+        setSaveStatus('error')
+      }
+    }, 2000)
+
+    return () => clearTimeout(saveTimerRef.current)
+  }, [dirty, templateId, onAutoSave, form, blocks])
+
+  function markDirty() {
+    setDirty(true)
+    setSaveStatus('idle')
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveDragId(String(event.active.id))
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveDragId(null)
+    const { active, over } = event
+    if (!over) return
+
+    const activeId = String(active.id)
+
+    // Drag from palette: create new block at drop position
+    if (activeId.startsWith('palette:')) {
+      const blockType = active.data.current?.blockType as EmailBlock['type']
+      const newBlock = buildBlock(blockType)
+      const overId = String(over.id)
+
+      if (overId === 'canvas-droppable') {
+        setBlocks([...blocks, newBlock])
+      } else {
+        const overIndex = blocks.findIndex((b) => b.id === overId)
+        const next = [...blocks]
+        next.splice(overIndex >= 0 ? overIndex : blocks.length, 0, newBlock)
+        setBlocks(next)
+      }
+      setSelectedId(newBlock.id)
+      markDirty()
+      return
+    }
+
+    // Reorder existing blocks
+    if (active.id === over.id) return
+    const oldIndex = blocks.findIndex((block) => block.id === active.id)
+    const newIndex = blocks.findIndex((block) => block.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    setBlocks(arrayMove(blocks, oldIndex, newIndex))
+    markDirty()
   }
 
   function addBlock(type: EmailBlock['type']) {
     const newBlock = buildBlock(type)
-    setBlocks((prev) => [...prev, newBlock])
+    setBlocks([...blocks, newBlock])
     setSelectedId(newBlock.id)
+    markDirty()
   }
 
   function applyPreset() {
@@ -237,6 +321,14 @@ export function EmailTemplateBuilder({
     }))
     setBlockErrors([])
     setFormErrors([])
+  }
+
+  function handleApplyPreset() {
+    if (blocks.length > 0) {
+      setShowPresetConfirm(true)
+    } else {
+      applyPreset()
+    }
   }
 
   async function loadLatestLeadPreview() {
@@ -278,31 +370,54 @@ export function EmailTemplateBuilder({
   }
 
   function updateBlock(next: EmailBlock) {
-    setBlocks((prev) => prev.map((block) => (block.id === next.id ? next : block)))
+    setBlocks(blocks.map((block) => (block.id === next.id ? next : block)))
     setBlockErrors([])
+    markDirty()
   }
 
   function removeBlock(id: string) {
-    setBlocks((prev) => prev.filter((block) => block.id !== id))
+    setBlocks(blocks.filter((block) => block.id !== id))
     if (selectedId === id) {
       const remaining = blocks.filter((block) => block.id !== id)
       setSelectedId(remaining[0]?.id ?? null)
     }
     setBlockErrors([])
+    markDirty()
   }
 
   function duplicateBlock(id: string) {
     const block = blocks.find((item) => item.id === id)
     if (!block) return
     const clone = { ...block, id: `${block.type}_${crypto.randomUUID()}` }
-    setBlocks((prev) => {
-      const index = prev.findIndex((item) => item.id === id)
-      const next = [...prev]
-      next.splice(index + 1, 0, clone)
-      return next
-    })
+    const index = blocks.findIndex((item) => item.id === id)
+    const next = [...blocks]
+    next.splice(index + 1, 0, clone)
+    setBlocks(next)
     setSelectedId(clone.id)
     setBlockErrors([])
+    markDirty()
+  }
+
+  async function handleSendTest() {
+    if (!templateId) return
+    setSendingTest(true)
+    try {
+      const res = await fetch(`/api/email-templates/${templateId}/send-test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: testEmail.trim() || undefined,
+          variables: previewVars,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Falha ao enviar teste')
+      toast.success('Email de teste enviado!')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao enviar teste')
+    } finally {
+      setSendingTest(false)
+    }
   }
 
   function submit(event: React.FormEvent) {
@@ -323,6 +438,7 @@ export function EmailTemplateBuilder({
   }
 
   return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <form onSubmit={submit} className="flex h-full overflow-hidden rounded-xl border bg-white shadow-sm">
       <EmailBlocksPalette onAdd={addBlock} />
 
@@ -331,6 +447,17 @@ export function EmailTemplateBuilder({
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-600">Template</span>
             <Badge variant="outline" className="h-5 text-[11px]">{blocks.length} bloco(s)</Badge>
+            {saveStatus === 'saving' && <Badge variant="secondary" className="h-5 text-[11px]">Salvando...</Badge>}
+            {saveStatus === 'saved' && !dirty && <Badge variant="secondary" className="h-5 text-[11px]">Salvo</Badge>}
+            {saveStatus === 'error' && <Badge variant="destructive" className="h-5 text-[11px]">Falha ao salvar</Badge>}
+            <div className="flex items-center gap-0.5">
+              <Button type="button" size="icon" variant="ghost" onClick={undo} disabled={!canUndo} title="Desfazer (Ctrl+Z)">
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button type="button" size="icon" variant="ghost" onClick={redo} disabled={!canRedo} title="Refazer (Ctrl+Shift+Z)">
+                <Redo2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {onCancel ? (
@@ -357,7 +484,7 @@ export function EmailTemplateBuilder({
               <Label className="text-xs">Nome do template *</Label>
               <Input
                 value={form.name}
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                onChange={(event) => { setForm((prev) => ({ ...prev, name: event.target.value })); markDirty() }}
                 placeholder="Ex: Boas-vindas ao lead"
                 required
               />
@@ -369,6 +496,7 @@ export function EmailTemplateBuilder({
                 onChange={(event) => {
                   setForm((prev) => ({ ...prev, subject: event.target.value }))
                   setFormErrors([])
+                  markDirty()
                 }}
                 placeholder="Ex: Ola {{name}}, obrigado!"
                 required
@@ -385,6 +513,7 @@ export function EmailTemplateBuilder({
                 onChange={(event) => {
                   setForm((prev) => ({ ...prev, from_name: event.target.value }))
                   setFormErrors([])
+                  markDirty()
                 }}
                 placeholder="Equipe"
               />
@@ -397,6 +526,7 @@ export function EmailTemplateBuilder({
                 onChange={(event) => {
                   setForm((prev) => ({ ...prev, from_email: event.target.value }))
                   setFormErrors([])
+                  markDirty()
                 }}
                 placeholder="contato@empresa.com"
               />
@@ -412,6 +542,7 @@ export function EmailTemplateBuilder({
                 onChange={(event) => {
                   setForm((prev) => ({ ...prev, reply_to: event.target.value }))
                   setFormErrors([])
+                  markDirty()
                 }}
                 placeholder="respostas@empresa.com"
               />
@@ -432,7 +563,7 @@ export function EmailTemplateBuilder({
                     <option key={preset.id} value={preset.id}>{preset.name}</option>
                   ))}
                 </select>
-                <Button type="button" variant="outline" size="sm" onClick={applyPreset} disabled={!presetId}>
+                <Button type="button" variant="outline" size="sm" onClick={handleApplyPreset} disabled={!presetId}>
                   Aplicar preset
                 </Button>
               </div>
@@ -449,30 +580,22 @@ export function EmailTemplateBuilder({
                 ))}
               </div>
             ) : null}
-            {blocks.length === 0 ? (
-              <div className="flex h-full min-h-[220px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 px-4 text-center">
-                <div className="mb-2 text-3xl">[]</div>
-                <p className="text-sm font-medium text-gray-700">Canvas vazio</p>
-                <p className="mt-1 text-xs text-gray-400">Adicione blocos no painel esquerdo.</p>
-              </div>
-            ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-2">
-                    {blocks.map((block) => (
-                      <SortableBlockItem
-                        key={block.id}
-                        block={block}
-                        selected={selectedId === block.id}
-                        onSelect={() => setSelectedId(block.id)}
-                        onDuplicate={() => duplicateBlock(block.id)}
-                        onRemove={() => removeBlock(block.id)}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
+            <CanvasDropZone isEmpty={blocks.length === 0}>
+              <SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {blocks.map((block) => (
+                    <SortableBlockItem
+                      key={block.id}
+                      block={block}
+                      selected={selectedId === block.id}
+                      onSelect={() => setSelectedId(block.id)}
+                      onDuplicate={() => duplicateBlock(block.id)}
+                      onRemove={() => removeBlock(block.id)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </CanvasDropZone>
           </div>
 
           <div className="w-[360px] border-l bg-white p-4">
@@ -486,7 +609,24 @@ export function EmailTemplateBuilder({
               </TabsContent>
               <TabsContent value="preview" className="mt-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">Preview com dados reais (ultimo lead).</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={previewDevice === 'desktop' ? 'default' : 'outline'}
+                      onClick={() => setPreviewDevice('desktop')}
+                    >
+                      <Monitor className="mr-1 h-4 w-4" /> Desktop
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={previewDevice === 'mobile' ? 'default' : 'outline'}
+                      onClick={() => setPreviewDevice('mobile')}
+                    >
+                      <Smartphone className="mr-1 h-4 w-4" /> Mobile
+                    </Button>
+                  </div>
                   <div className="flex gap-2">
                     <Button type="button" size="sm" variant="outline" onClick={loadLatestLeadPreview}>
                       Usar ultimo lead
@@ -496,16 +636,83 @@ export function EmailTemplateBuilder({
                     </Button>
                   </div>
                 </div>
-                <div className="h-[520px] overflow-hidden rounded-lg border">
-                  <iframe title="preview" className="h-full w-full" srcDoc={previewHtml} />
+                <div className="flex h-[520px] justify-center overflow-hidden rounded-lg border bg-gray-100">
+                  <iframe
+                    title="preview"
+                    className="h-full bg-white"
+                    style={{ width: previewDevice === 'mobile' ? 375 : 600 }}
+                    srcDoc={previewHtml}
+                  />
                 </div>
+                {templateId && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <Input
+                      type="email"
+                      placeholder="Email de teste (padrao: seu email)"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button type="button" size="sm" disabled={sendingTest} onClick={handleSendTest}>
+                      {sendingTest ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                      Enviar teste
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showPresetConfirm} onOpenChange={setShowPresetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir blocos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os {blocks.length} blocos existentes serao substituidos pelo preset selecionado. Essa acao nao pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { applyPreset(); setShowPresetConfirm(false) }}>
+              Aplicar preset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
+
+      <DragOverlay>
+        {activeDragId?.startsWith('palette:') ? (
+          <div className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 shadow-lg">
+            {activeDragId.replace('palette:', '')}
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
+}
+
+function CanvasDropZone({ isEmpty, children }: { isEmpty: boolean; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'canvas-droppable' })
+
+  if (isEmpty) {
+    return (
+      <div
+        ref={setNodeRef}
+        className={`flex h-full min-h-[220px] flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 text-center transition-colors ${
+          isOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-gray-200'
+        }`}
+      >
+        <div className="mb-2 text-3xl">[]</div>
+        <p className="text-sm font-medium text-gray-700">Canvas vazio</p>
+        <p className="mt-1 text-xs text-gray-400">Adicione blocos no painel esquerdo ou arraste aqui.</p>
+      </div>
+    )
+  }
+
+  return <div ref={setNodeRef}>{children}</div>
 }
 
 function SortableBlockItem({
