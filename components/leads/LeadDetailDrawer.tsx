@@ -3,10 +3,26 @@
 import { useState, useEffect } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { LeadTimeline } from './LeadTimeline'
 import { ScoreBreakdown } from './ScoreBreakdown'
-import { Globe, Monitor, Clock, ExternalLink, Loader2 } from 'lucide-react'
+import {
+  Globe,
+  Monitor,
+  Clock,
+  ExternalLink,
+  Loader2,
+  User,
+  Mail,
+  FileText,
+  MapPin,
+  Smartphone,
+  Shield,
+  Megaphone,
+  Link2,
+  Tag,
+  Copy,
+  Check,
+} from 'lucide-react'
 
 interface LeadDetailDrawerProps {
   leadId: string | null
@@ -66,16 +82,91 @@ function parseScoreFactors(events: LeadDetail['events']) {
   })
 }
 
-function getScoreColor(score: number) {
-  if (score >= 70) return 'bg-green-100 text-green-700'
-  if (score >= 40) return 'bg-yellow-100 text-yellow-700'
-  return 'bg-gray-100 text-gray-700'
+function getStatusConfig(status: string) {
+  switch (status) {
+    case 'new':
+      return { label: 'Novo', className: 'bg-blue-50 text-blue-700 border-blue-200' }
+    case 'contacted':
+      return { label: 'Contactado', className: 'bg-purple-50 text-purple-700 border-purple-200' }
+    case 'qualified':
+      return { label: 'Qualificado', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+    case 'converted':
+      return { label: 'Convertido', className: 'bg-green-50 text-green-700 border-green-200' }
+    case 'lost':
+      return { label: 'Perdido', className: 'bg-red-50 text-red-700 border-red-200' }
+    default:
+      return { label: status, className: 'bg-gray-50 text-gray-700 border-gray-200' }
+  }
 }
 
-function getScoreLabel(score: number) {
-  if (score >= 70) return 'Quente'
-  if (score >= 40) return 'Morno'
-  return 'Frio'
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+function formatFieldLabel(key: string) {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase())
+}
+
+function SectionCard({ icon: Icon, title, children }: { icon: typeof Globe; title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-50">
+        <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-gray-50">
+          <Icon className="h-3.5 w-3.5 text-gray-500" />
+        </div>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</h4>
+      </div>
+      <div className="px-4 py-3">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function CopyableText({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors group"
+    >
+      {text}
+      {copied ? (
+        <Check className="h-3 w-3 text-green-500" />
+      ) : (
+        <Copy className="h-3 w-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+      )}
+    </button>
+  )
+}
+
+function InfoRow({ icon: Icon, label, value, className }: { icon?: typeof Globe; label: string; value: React.ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-center justify-between py-1.5 ${className ?? ''}`}>
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        {Icon && <Icon className="h-3.5 w-3.5" />}
+        <span>{label}</span>
+      </div>
+      <div className="text-sm font-medium text-gray-900 text-right max-w-[60%] truncate">
+        {value}
+      </div>
+    </div>
+  )
 }
 
 export function LeadDetailDrawer({ leadId, onClose }: LeadDetailDrawerProps) {
@@ -99,143 +190,168 @@ export function LeadDetailDrawer({ leadId, onClose }: LeadDetailDrawerProps) {
     }
   }, [leadId])
 
+  const leadName = lead ? String(lead.data.name || lead.data.nome || 'Lead sem nome') : ''
+  const leadEmail = lead ? String(lead.data.email || '') : ''
+  const leadPhone = lead ? String(lead.data.phone || lead.data.telefone || lead.data.whatsapp || '') : ''
+  const statusConfig = lead ? getStatusConfig(lead.status) : null
+
   return (
     <Drawer open={!!leadId} onClose={onClose}>
-      <DrawerContent className="max-h-[85vh]">
-        <DrawerHeader>
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader className="sr-only">
           <DrawerTitle>Detalhes do Lead</DrawerTitle>
         </DrawerHeader>
 
-        <div className="overflow-y-auto px-4 pb-6">
+        <div className="overflow-y-auto px-5 pb-8">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+              <p className="text-sm text-muted-foreground">Carregando detalhes...</p>
             </div>
           ) : lead ? (
-            <div className="space-y-5">
-              {/* Header info */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {String(lead.data.name || lead.data.nome || 'Lead sem nome')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {String(lead.data.email || '-')}
-                  </p>
+            <div className="space-y-4">
+              {/* ── Hero Header ── */}
+              <div className="flex items-start gap-4 py-2">
+                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-indigo-500 to-purple-600 text-white font-bold text-lg shadow-md shrink-0">
+                  {getInitials(leadName)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-xl text-gray-900 truncate">{leadName}</h3>
+                  {leadEmail && (
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Mail className="h-3.5 w-3.5 text-gray-400" />
+                      <CopyableText text={leadEmail} />
+                    </div>
+                  )}
+                  {leadPhone && (
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Smartphone className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="text-sm text-gray-600">{leadPhone}</span>
+                    </div>
+                  )}
                   {lead.form_name && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Formulário: {lead.form_name}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <FileText className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="text-xs text-gray-500">{lead.form_name}</span>
+                    </div>
                   )}
                 </div>
-                <div className="flex gap-1.5">
-                  <Badge variant="secondary">{lead.status}</Badge>
-                  <Badge className={getScoreColor(lead.score)}>
-                    {lead.score} - {getScoreLabel(lead.score)}
-                  </Badge>
-                  {lead.is_duplicate && <Badge variant="outline">Duplicado</Badge>}
-                </div>
               </div>
 
+              {/* ── Badges row ── */}
+              <div className="flex flex-wrap items-center gap-2">
+                {statusConfig && (
+                  <Badge variant="outline" className={`${statusConfig.className} font-medium`}>
+                    {statusConfig.label}
+                  </Badge>
+                )}
+                {lead.is_duplicate && (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-medium">
+                    Duplicado
+                  </Badge>
+                )}
+                {lead.enrichment?.is_vpn && (
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 font-medium">
+                    <Shield className="h-3 w-3 mr-1" />
+                    VPN
+                  </Badge>
+                )}
+                {lead.time_to_complete_seconds != null && (
+                  <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200 font-medium">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {lead.time_to_complete_seconds}s
+                  </Badge>
+                )}
+                <span className="text-xs text-gray-400 ml-auto">
+                  {new Date(lead.created_at).toLocaleString('pt-BR')}
+                </span>
+              </div>
+
+              {/* ── Score ── */}
               <ScoreBreakdown score={lead.score} factors={scoreFactors} />
 
-              {/* UTM / Source */}
-              {(lead.utm_source || lead.referrer) && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Origem</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {lead.utm_source && (
-                        <div>
-                          <span className="text-muted-foreground">Fonte:</span>{' '}
-                          <span className="font-medium">{lead.utm_source}</span>
-                        </div>
-                      )}
-                      {lead.utm_medium && (
-                        <div>
-                          <span className="text-muted-foreground">Meio:</span>{' '}
-                          <span className="font-medium">{lead.utm_medium}</span>
-                        </div>
-                      )}
-                      {lead.utm_campaign && (
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground">Campanha:</span>{' '}
-                          <span className="font-medium">{lead.utm_campaign}</span>
-                        </div>
-                      )}
-                      {lead.referrer && (
-                        <div className="col-span-2 flex items-center gap-1">
-                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground truncate">{lead.referrer}</span>
-                        </div>
-                      )}
-                    </div>
+              {/* ── Origin / UTM ── */}
+              {(lead.utm_source || lead.utm_medium || lead.utm_campaign || lead.referrer) && (
+                <SectionCard icon={Megaphone} title="Origem & Campanha">
+                  <div className="space-y-0.5">
+                    {lead.utm_source && (
+                      <InfoRow icon={Tag} label="Fonte" value={lead.utm_source} />
+                    )}
+                    {lead.utm_medium && (
+                      <InfoRow icon={Link2} label="Meio" value={lead.utm_medium} />
+                    )}
+                    {lead.utm_campaign && (
+                      <InfoRow icon={Megaphone} label="Campanha" value={lead.utm_campaign} />
+                    )}
+                    {lead.referrer && (
+                      <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-gray-50 text-xs text-gray-500">
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{lead.referrer}</span>
+                      </div>
+                    )}
                   </div>
-                </>
+                </SectionCard>
               )}
 
-              {/* Enrichment */}
+              {/* ── Device & Location ── */}
               {lead.enrichment && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Dispositivo & Localização</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {lead.enrichment.city && (
-                        <div className="flex items-center gap-1.5">
-                          <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                          {lead.enrichment.city}, {lead.enrichment.region}
-                        </div>
-                      )}
-                      {lead.enrichment.country && (
-                        <div>{lead.enrichment.country}</div>
-                      )}
-                      {lead.enrichment.browser && (
-                        <div className="flex items-center gap-1.5">
-                          <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
-                          {lead.enrichment.browser} / {lead.enrichment.os}
-                        </div>
-                      )}
-                      {lead.enrichment.device_type && (
-                        <div className="capitalize">{lead.enrichment.device_type}</div>
-                      )}
-                      {lead.enrichment.is_vpn && (
-                        <Badge variant="destructive" className="w-fit text-xs">VPN</Badge>
-                      )}
-                    </div>
+                <SectionCard icon={Monitor} title="Dispositivo & Localização">
+                  <div className="space-y-0.5">
+                    {(lead.enrichment.city || lead.enrichment.country) && (
+                      <InfoRow
+                        icon={MapPin}
+                        label="Localização"
+                        value={[lead.enrichment.city, lead.enrichment.region, lead.enrichment.country].filter(Boolean).join(', ')}
+                      />
+                    )}
+                    {lead.enrichment.browser && (
+                      <InfoRow
+                        icon={Globe}
+                        label="Navegador"
+                        value={`${lead.enrichment.browser} / ${lead.enrichment.os}`}
+                      />
+                    )}
+                    {lead.enrichment.device_type && (
+                      <InfoRow
+                        icon={lead.enrichment.is_mobile ? Smartphone : Monitor}
+                        label="Dispositivo"
+                        value={<span className="capitalize">{lead.enrichment.device_type}</span>}
+                      />
+                    )}
                   </div>
-                </>
+                </SectionCard>
               )}
 
-              {/* Time to complete */}
-              {lead.time_to_complete_seconds && (
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  Preencheu em {lead.time_to_complete_seconds}s
+              {/* ── Form Data ── */}
+              <SectionCard icon={FileText} title="Dados do Formulário">
+                <div className="divide-y divide-gray-50">
+                  {Object.entries(lead.data).map(([key, value]) => {
+                    const strVal = String(value ?? '')
+                    if (!strVal) return null
+                    return (
+                      <div key={key} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                        <span className="text-sm text-gray-500">{formatFieldLabel(key)}</span>
+                        <span className="text-sm font-medium text-gray-900 text-right max-w-[60%] truncate">
+                          {strVal === 'true' ? (
+                            <span className="inline-flex items-center gap-1 text-green-600">
+                              <Check className="h-3.5 w-3.5" /> Sim
+                            </span>
+                          ) : strVal === 'false' ? (
+                            <span className="text-gray-400">Não</span>
+                          ) : (
+                            strVal
+                          )}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
-              )}
+              </SectionCard>
 
-              {/* Form data */}
-              <Separator />
-              <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Dados do formulário</h4>
-                <div className="space-y-1.5">
-                  {Object.entries(lead.data).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{key}</span>
-                      <span className="font-medium text-right max-w-[60%] truncate">{String(value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Timeline */}
-              <Separator />
-              <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Timeline</h4>
+              {/* ── Timeline ── */}
+              <SectionCard icon={Clock} title="Timeline">
                 <LeadTimeline events={lead.events} />
-              </div>
+              </SectionCard>
             </div>
           ) : null}
         </div>

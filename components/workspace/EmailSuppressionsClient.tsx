@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Plus, Search } from 'lucide-react'
+import { type ChangeEvent, type DragEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { Download, Loader2, Plus, Search, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 interface SuppressionItem {
   id: string
@@ -28,11 +29,12 @@ interface SuppressionResponse {
   }
 }
 
-function buildQuery(input: { q: string; status: string; page: number; pageSize: number }) {
+function buildQuery(input: { q: string; status: string; page: number; pageSize: number; format?: 'json' | 'csv' }) {
   const params = new URLSearchParams()
   params.set('status', input.status)
   params.set('page', String(input.page))
   params.set('pageSize', String(input.pageSize))
+  params.set('format', input.format ?? 'json')
   if (input.q.trim()) params.set('q', input.q.trim())
   return params.toString()
 }
@@ -45,9 +47,19 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
+function extractEmailsFromText(value: string) {
+  const matches = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? []
+  return Array.from(new Set(matches.map((item) => normalizeEmail(item)).filter((item) => item.length > 0)))
+}
+
 export function EmailSuppressionsClient() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [parsingFile, setParsingFile] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
   const [items, setItems] = useState<SuppressionItem[]>([])
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -56,6 +68,7 @@ export function EmailSuppressionsClient() {
   const [meta, setMeta] = useState({ total: 0, page: 1, pageSize: 25, totalPages: 1 })
   const [newEmail, setNewEmail] = useState('')
   const [newReason, setNewReason] = useState('manual')
+  const [importText, setImportText] = useState('')
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 300)
@@ -71,6 +84,7 @@ export function EmailSuppressionsClient() {
         status,
         page: targetPage,
         pageSize: meta.pageSize,
+        format: 'json',
       })
       const res = await fetch(`/api/email/suppressions?${query}`)
       const data = (await res.json()) as SuppressionResponse
@@ -123,6 +137,116 @@ export function EmailSuppressionsClient() {
     }
   }
 
+  async function exportCsv() {
+    setExporting(true)
+    try {
+      const query = buildQuery({
+        q: debouncedSearch,
+        status,
+        page: 1,
+        pageSize: 100,
+        format: 'csv',
+      })
+      const res = await fetch(`/api/email/suppressions?${query}`)
+      if (!res.ok) throw new Error('Falha ao exportar CSV')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `email-suppressions-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
+      window.URL.revokeObjectURL(url)
+      toast.success('CSV exportado com sucesso.')
+    } catch {
+      toast.error('Nao foi possivel exportar o CSV.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function importBulk() {
+    if (!importText.trim()) {
+      toast.error('Cole ao menos um e-mail para importar.')
+      return
+    }
+
+    setImporting(true)
+    try {
+      const res = await fetch('/api/email/suppressions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emails: importText,
+          reason: newReason || 'manual',
+          source: 'workspace_ui_bulk',
+          is_active: true,
+        }),
+      })
+
+      const data = await res.json() as {
+        error?: string
+        imported?: number
+        invalid?: number
+      }
+      if (!res.ok) throw new Error(data.error || 'Falha ao importar')
+
+      setImportText('')
+      toast.success(`Importacao concluida: ${data.imported ?? 0} valido(s), ${data.invalid ?? 0} invalido(s).`)
+      await loadList(1)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Falha ao importar e-mails')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  async function importFromFile(file: File) {
+    const lower = file.name.toLowerCase()
+    if (!lower.endsWith('.csv') && !lower.endsWith('.txt')) {
+      toast.error('Selecione um arquivo .csv ou .txt')
+      return
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Limite de 2MB.')
+      return
+    }
+
+    setParsingFile(true)
+    try {
+      const content = await file.text()
+      const emails = extractEmailsFromText(content)
+      if (emails.length === 0) {
+        toast.error('Nenhum e-mail valido encontrado no arquivo.')
+        return
+      }
+
+      setImportText(emails.join('\n'))
+      toast.success(`${emails.length} e-mail(s) carregado(s) no campo de importacao.`)
+    } catch {
+      toast.error('Nao foi possivel ler o arquivo.')
+    } finally {
+      setParsingFile(false)
+    }
+  }
+
+  async function onFileInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    await importFromFile(file)
+    event.target.value = ''
+  }
+
+  async function onDropFile(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setDragActive(false)
+    const file = event.dataTransfer.files?.[0]
+    if (!file) return
+    await importFromFile(file)
+  }
+
   async function updateStatus(item: SuppressionItem, active: boolean) {
     setSaving(true)
     try {
@@ -148,6 +272,7 @@ export function EmailSuppressionsClient() {
     }
   }
 
+  const parsedPreviewCount = useMemo(() => extractEmailsFromText(importText).length, [importText])
   const canPrev = useMemo(() => page > 1, [page])
   const canNext = useMemo(() => page < meta.totalPages, [page, meta.totalPages])
 
@@ -157,6 +282,13 @@ export function EmailSuppressionsClient() {
         <CardTitle className="text-base">Lista de supressao (marketing)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button variant="outline" onClick={() => void exportCsv()} disabled={exporting || loading}>
+            {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+            Exportar CSV
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 gap-2 lg:grid-cols-[2fr_1fr_auto]">
           <Input
             placeholder="email@empresa.com"
@@ -172,6 +304,60 @@ export function EmailSuppressionsClient() {
             {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plus className="mr-1.5 h-4 w-4" />}
             Adicionar
           </Button>
+        </div>
+
+        <div className="rounded-lg border p-3">
+          <p className="text-sm font-medium">Importar em lote</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cole e-mails separados por quebra de linha, virgula ou ponto e virgula.
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.txt,text/csv,text/plain"
+            className="hidden"
+            onChange={(event) => void onFileInputChange(event)}
+          />
+          <div className="mt-2 space-y-2">
+            <div
+              className={`rounded-md border border-dashed p-3 text-xs transition-colors ${
+                dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'
+              }`}
+              onDragOver={(event) => {
+                event.preventDefault()
+                setDragActive(true)
+              }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={(event) => void onDropFile(event)}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-muted-foreground">Arraste e solte arquivo CSV/TXT aqui.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={parsingFile}
+                >
+                  {parsingFile ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
+                  Selecionar arquivo
+                </Button>
+              </div>
+            </div>
+            <Textarea
+              placeholder={'exemplo@empresa.com\ncontato@empresa.com'}
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              rows={5}
+            />
+            <p className="text-xs text-muted-foreground">Emails detectados no texto: {parsedPreviewCount}</p>
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => void importBulk()} disabled={importing}>
+                {importing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
+                Importar lote
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto]">
