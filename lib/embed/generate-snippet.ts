@@ -8,15 +8,15 @@ export function generateEmbedCode(formId: string, appUrl: string) {
   allow="geolocation"
 ></iframe>`
 
-  const jsCode = `<!-- LeadForm Embed -->
-<div id="leadform-${formId}"></div>
+  const jsCode = `<!-- TrackingForm Embed -->
+<div id="trackingform-${formId}"></div>
 <script>
   (function(w,d,s,f){
     var j=d.createElement(s);
     j.async=true;
     j.src='${appUrl}/embed.js';
     j.setAttribute('data-form',f);
-    j.setAttribute('data-container','leadform-'+f);
+    j.setAttribute('data-container','trackingform-'+f);
     d.head.appendChild(j);
   })(window,document,'script','${formId}');
 </script>`

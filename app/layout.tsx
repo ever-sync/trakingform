@@ -10,8 +10,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "LeadForm — Captura e gestão de leads",
-  description: "Plataforma SaaS para captura, enriquecimento e gestão de leads com formulários inteligentes.",
+  title: "TrackingForm - Captura e gestao de leads",
+  description: "Plataforma SaaS para captura, enriquecimento e gestao de leads com formularios inteligentes.",
 };
 
 export default function RootLayout({

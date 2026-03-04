@@ -343,7 +343,8 @@ export default async function FormDetailPage({
             <CardHeader><CardTitle className="text-base">Inline (com JS)</CardTitle></CardHeader>
             <CardContent>
               <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto">
-{`<div id="leadform-${formId}"></div>
+{`<!-- Compat: embeds with id="leadform-${formId}" still work -->
+<div id="trackingform-${formId}"></div>
 <script
   src="${appUrl}/embed.js"
   data-form-id="${formId}"

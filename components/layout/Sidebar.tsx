@@ -72,9 +72,9 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-2 mb-4">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm">L</span>
+          <span className="text-white font-bold text-sm">T</span>
         </div>
-        <span className="font-bold text-xl text-gray-900 tracking-tight">LeadForm</span>
+        <span className="font-bold text-xl text-gray-900 tracking-tight">TrackingForm</span>
       </div>
 
       {/* Main nav */}
@@ -119,7 +119,7 @@ export function Sidebar() {
       {/* Footer Actions */}
       <div className="mt-4 space-y-1">
         <Link
-          href="mailto:suporte@leadform.com"
+          href="mailto:suporte@trackingform.com"
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
         >
           <HeadphonesIcon className="w-5 h-5 text-gray-400" />

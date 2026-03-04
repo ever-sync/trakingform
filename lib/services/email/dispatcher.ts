@@ -296,7 +296,7 @@ export async function processPendingEmailDispatches(options: ProcessDispatchOpti
     const variables = normalizeVariables(dispatch.variables)
     const blocks = normalizeBlocks(dispatch.blocks)
 
-    const fromName = variables.from_name || settings.default_from_name || 'LeadForm'
+    const fromName = variables.from_name || settings.default_from_name || 'TrackingForm'
     const fromEmail = variables.from_email || settings.default_from_email || ''
     const replyTo = variables.reply_to || settings.default_reply_to || null
 

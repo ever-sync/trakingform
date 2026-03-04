@@ -74,8 +74,8 @@ export async function POST(
     const provider = emailProviderRegistry.getPrimary()
     const result = await provider.send({
       to: recipientEmail,
-      fromName: template.from_name || 'LeadForm',
-      fromEmail: template.from_email || 'noreply@leadform.app',
+      fromName: template.from_name || 'TrackingForm',
+      fromEmail: template.from_email || 'noreply@trackingform.app',
       replyTo: template.reply_to ?? undefined,
       subject: `[TESTE] ${replaceTemplateVariables(template.subject || 'Test', vars)}`,
       html: renderEmailBlocks(blocks, vars),

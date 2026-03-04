@@ -197,7 +197,7 @@ export async function POST(
           }, {}),
           name,
           email: recipient.email,
-          from_name: template.from_name ?? settings.default_from_name ?? 'LeadForm',
+          from_name: template.from_name ?? settings.default_from_name ?? 'TrackingForm',
           from_email: template.from_email ?? settings.default_from_email ?? '',
           reply_to: template.reply_to ?? settings.default_reply_to ?? '',
           unsubscribe_url: `${appUrl}/api/email/unsubscribe?workspace=${workspace.id}&email=${encodeURIComponent(recipient.email)}`,

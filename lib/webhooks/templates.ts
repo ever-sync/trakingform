@@ -28,7 +28,7 @@ export const webhookTemplates: WebhookTemplate[] = [
       name: '{{name}}',
       email: '{{email}}',
       phone: '{{phone}}',
-      source: 'LeadForm',
+      source: 'TrackingForm',
     },
     instructions: 'Use a API de Pessoas do Pipedrive. URL: https://api.pipedrive.com/v1/persons?api_token=SEU_TOKEN',
     icon: 'funnel',

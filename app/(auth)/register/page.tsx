@@ -49,7 +49,7 @@ export default function RegisterPage() {
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">L</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">LeadForm</span>
+            <span className="text-xl font-bold text-gray-900">TrackingForm</span>
           </div>
         </div>
         <Card>

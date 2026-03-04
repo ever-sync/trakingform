@@ -1,4 +1,9 @@
-import DOMPurify from 'isomorphic-dompurify'
+import { JSDOM } from 'jsdom'
+import createDOMPurify from 'dompurify'
+
+const window = new JSDOM('').window
+const DOMPurify = createDOMPurify(window)
+
 import { EmailBlock } from '@/types'
 
 const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'u', 'span', 'b', 'i']

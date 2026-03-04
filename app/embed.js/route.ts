@@ -29,7 +29,10 @@ const script = `
   if (!formId) return;
   var mode = (bootScript.getAttribute('data-mode') || 'inline').toLowerCase();
   var triggerLabel = bootScript.getAttribute('data-trigger-label');
-  var containerId = bootScript.getAttribute('data-container') || ('leadform-' + formId);
+  var rawContainerId = bootScript.getAttribute('data-container');
+  var containerId = rawContainerId && String(rawContainerId).trim()
+    ? String(rawContainerId).trim()
+    : ('trackingform-' + formId);
   var triggerBottomAttr = Number(bootScript.getAttribute('data-trigger-bottom'));
   var triggerRightAttr = Number(bootScript.getAttribute('data-trigger-right'));
 
@@ -114,7 +117,12 @@ const script = `
   }
 
   function initInline(targetFormId, targetContainerId) {
-    var container = document.getElementById(targetContainerId);
+    var container = targetContainerId ? document.getElementById(targetContainerId) : null;
+    if (!container) {
+      // Auto-detect known containers when data-container is empty or missing
+      container = document.getElementById('trackingform-' + targetFormId)
+        || document.getElementById('leadform-' + targetFormId);
+    }
     if (!container) return;
     var iframe = createIframe(targetFormId);
     container.innerHTML = '';
