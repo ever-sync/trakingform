@@ -113,7 +113,7 @@ export function evaluateRulesForContext(
     return {
       ruleId: rule.id,
       ruleName: rule.name,
-      priority: rule.priority,
+      priority: Number(rule.priority ?? 0),
       matched,
       assignmentMode,
       assignmentUserId,
