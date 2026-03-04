@@ -30,6 +30,8 @@ const script = `
   var mode = (bootScript.getAttribute('data-mode') || 'inline').toLowerCase();
   var triggerLabel = bootScript.getAttribute('data-trigger-label');
   var containerId = bootScript.getAttribute('data-container') || ('leadform-' + formId);
+  var triggerBottomAttr = Number(bootScript.getAttribute('data-trigger-bottom'));
+  var triggerRightAttr = Number(bootScript.getAttribute('data-trigger-right'));
 
   function createIframe(targetFormId) {
     var iframe = document.createElement('iframe');
@@ -124,6 +126,11 @@ const script = `
     var trigger = document.createElement('button');
     trigger.className = 'lf-trigger';
     trigger.textContent = label || 'Fale conosco';
+    var triggerIndex = document.querySelectorAll('.lf-trigger').length;
+    var bottom = Number.isFinite(triggerBottomAttr) ? triggerBottomAttr : (20 + (triggerIndex * 56));
+    var right = Number.isFinite(triggerRightAttr) ? triggerRightAttr : 20;
+    trigger.style.bottom = bottom + 'px';
+    trigger.style.right = right + 'px';
     trigger.addEventListener('click', modal.open);
     document.body.appendChild(trigger);
   }

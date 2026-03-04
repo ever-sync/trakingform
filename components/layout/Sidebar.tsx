@@ -27,6 +27,11 @@ const navigation = [
 
 const bottomNavigation = [
   { name: 'Workspace', href: '/workspace', icon: Settings },
+  { name: 'Routing', href: '/workspace/routing', icon: Users },
+  { name: 'Ads', href: '/workspace/ads', icon: BarChart3 },
+  { name: 'Recovery', href: '/workspace/recovery', icon: Mail },
+  { name: 'Compliance', href: '/workspace/compliance', icon: Settings },
+  { name: 'Operações', href: '/workspace/operations', icon: BarChart3 },
   { name: 'Plano & Faturamento', href: '/billing', icon: CreditCard },
 ]
 

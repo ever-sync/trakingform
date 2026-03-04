@@ -47,6 +47,29 @@ export default function WorkspacePage() {
           </p>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Conversão e Governança</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/workspace/ads">Ads</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/workspace/recovery">Recovery</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/workspace/routing">Routing</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/workspace/compliance">Compliance</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/workspace/operations">Operações</Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

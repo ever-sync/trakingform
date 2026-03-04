@@ -71,10 +71,25 @@ export interface Lead {
   utm_content: string | null
   referrer: string | null
   variant_id: string | null
+  stage_changed_at?: string | null
+  first_response_at?: string | null
+  owner_id?: string | null
+  attribution_snapshot?: JsonObject | null
   created_at: string
   enrichment?: LeadEnrichment
   events?: LeadEvent[]
   score_factors?: ScoringFactor[]
+}
+
+export type LeadStage = 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+
+export interface LeadAttribution {
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
+  utm_term?: string | null
+  utm_content?: string | null
+  referrer?: string | null
 }
 
 export interface LeadEnrichment {
@@ -142,6 +157,38 @@ export interface RoutingCondition {
   value: string
 }
 
+export interface RoutingRuleV2 {
+  id: string
+  workspace_id: string
+  name: string
+  is_active: boolean
+  priority: number
+  conditions: JsonValue
+  assignment: JsonValue
+  created_at: string
+  updated_at: string
+}
+
+export interface SlaPolicy {
+  id: string
+  workspace_id: string
+  name: string
+  is_active: boolean
+  first_response_minutes: number
+  escalation_minutes: number
+  channels: JsonValue
+}
+
+export interface LeadAssignment {
+  id: string
+  lead_id: string
+  rule_id: string | null
+  assigned_to: string | null
+  reason: string | null
+  metadata: JsonValue
+  created_at: string
+}
+
 export interface WebhookLog {
   id: string
   destination_id: string
@@ -153,6 +200,62 @@ export interface WebhookLog {
   attempt: number
   latency_ms: number | null
   success: boolean
+  created_at: string
+}
+
+export interface RecoveryDraft {
+  id: string
+  workspace_id: string
+  form_id: string
+  fingerprint: string | null
+  email: string | null
+  phone: string | null
+  data: JsonObject
+  progress_step: number
+  resumed_at: string | null
+  converted_lead_id: string | null
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface RecoveryCampaign {
+  id: string
+  workspace_id: string
+  name: string
+  is_active: boolean
+  channel: string
+  delay_minutes: number
+  message_template: string
+  conditions: JsonValue
+  created_at: string
+  updated_at: string
+}
+
+export interface ConsentRecord {
+  id: string
+  workspace_id: string
+  lead_id: string
+  form_id: string | null
+  consent_key: string
+  consent_text: string | null
+  consent_version: string
+  granted: boolean
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+}
+
+export interface AdDispatchStatus {
+  id: string
+  workspace_id: string
+  lead_id: string
+  platform: 'google_ads' | 'meta_ads'
+  event_name: string
+  status: string
+  attempts: number
+  sent_at: string | null
+  error: string | null
   created_at: string
 }
 

@@ -1,9 +1,42 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
+import { webhookDestinations } from '@/lib/db/schema'
+import { getOrCreateWorkspace } from '@/lib/db/queries/workspace'
+import { eq, desc } from 'drizzle-orm'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Plus, Webhook } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { WebhooksManagerClient } from '@/components/webhooks/WebhooksManagerClient'
 
-export default function WebhooksPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function WebhooksPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  const workspace = await getOrCreateWorkspace(user.id, user.email ?? 'user@example.com')
+
+  const destinations = await db
+    .select()
+    .from(webhookDestinations)
+    .where(eq(webhookDestinations.workspace_id, workspace.id))
+    .orderBy(desc(webhookDestinations.created_at))
+  const serializedDestinations = destinations.map((destination) => ({
+    id: destination.id,
+    name: destination.name,
+    type: destination.type ?? 'generic',
+    method: destination.method ?? 'POST',
+    url: destination.url,
+    is_active: destination.is_active,
+    created_at: destination.created_at ? new Date(destination.created_at).toISOString() : null,
+    updated_at: destination.updated_at ? new Date(destination.updated_at).toISOString() : null,
+  }))
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -13,29 +46,12 @@ export default function WebhooksPage() {
         </div>
         <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
           <Link href="/webhooks/new">
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             Novo destino
           </Link>
         </Button>
       </div>
-
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-4">
-            <Webhook className="h-6 w-6 text-indigo-600" />
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-1">Nenhum webhook configurado</h3>
-          <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
-            Configure destinos para enviar leads automaticamente para n8n, WhatsApp, CRMs e mais.
-          </p>
-          <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
-            <Link href="/webhooks/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Criar destino
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <WebhooksManagerClient initialDestinations={serializedDestinations} />
     </div>
   )
 }

@@ -1,26 +1,39 @@
 import { db } from '@/lib/db'
 import { webhookLogs, webhookRoutingRules, webhookDestinations, leadEvents } from '@/lib/db/schema'
 import { RoutingCondition } from '@/types'
-import { eq, and, or, isNull } from 'drizzle-orm'
+import { eq, and, or, isNull, asc } from 'drizzle-orm'
 
 type LeadData = Record<string, unknown>
 type WebhookDestinationRow = typeof webhookDestinations.$inferSelect
 
-export async function dispatchWebhooksForLead(leadId: string, formId: string, leadData: LeadData) {
-  const rules = await db.query.webhookRoutingRules.findMany({
-    where: and(
-      eq(webhookRoutingRules.is_active, true),
-      or(
-        eq(webhookRoutingRules.form_id, formId),
-        isNull(webhookRoutingRules.form_id)
-      )
-    ),
-    with: { destination: true },
-    orderBy: (r, { asc }) => [asc(r.priority)],
-  })
+export async function dispatchWebhooksForLead(
+  leadId: string,
+  formId: string,
+  workspaceId: string,
+  leadData: LeadData
+) {
+  if (!workspaceId) return
 
-  for (const rule of rules) {
-    const dest = (rule as { destination?: WebhookDestinationRow | null }).destination
+  const rows = await db
+    .select({
+      rule: webhookRoutingRules,
+      dest: webhookDestinations,
+    })
+    .from(webhookRoutingRules)
+    .leftJoin(webhookDestinations, eq(webhookRoutingRules.destination_id, webhookDestinations.id))
+    .where(
+      and(
+        eq(webhookRoutingRules.workspace_id, workspaceId),
+        eq(webhookRoutingRules.is_active, true),
+        or(
+          eq(webhookRoutingRules.form_id, formId),
+          isNull(webhookRoutingRules.form_id)
+        )
+      )
+    )
+    .orderBy(asc(webhookRoutingRules.priority))
+
+  for (const { rule, dest } of rows) {
     if (!dest?.is_active) continue
     if (!evaluateConditions(parseConditions(rule.conditions), leadData)) continue
     sendWebhook(dest, leadId, leadData).catch(console.error)

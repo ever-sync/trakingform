@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 import { db } from '@/lib/db'
-import { forms, leads, leadEvents } from '@/lib/db/schema'
+import { forms, leads, leadConsents, leadEvents, formSessionDrafts } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import { enrichLeadWithIP } from '@/lib/services/ip-enrichment'
 import { detectDuplicate } from '@/lib/services/duplicate-detector'
@@ -11,6 +11,8 @@ import { notifyWhatsApp } from '@/lib/services/whatsapp-notifier'
 import { recordVariantSubmission } from '@/lib/services/ab-test'
 import { calculateEnhancedLeadScore } from '@/lib/services/ai-lead-score'
 import { validateFormSubmission } from '@/lib/services/form-validator'
+import { assignLeadByRoutingRules } from '@/lib/services/routing/engine'
+import { buildAttributionSnapshot, recordLeadEvent } from '@/lib/services/lead-events'
 import { FormField } from '@/types'
 
 function getActiveFields(fields: unknown, settings: unknown): FormField[] {
@@ -24,6 +26,50 @@ function getActiveFields(fields: unknown, settings: unknown): FormField[] {
   if (Array.isArray(publishedFields)) return publishedFields as FormField[]
 
   return draftFields
+}
+
+function pickValueFromBody(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : undefined
+}
+
+function extractFieldValueByType(
+  fields: FormField[],
+  body: Record<string, unknown>,
+  type: FormField['type'],
+  fallbackNames: string[] = []
+): string | undefined {
+  for (const fallbackName of fallbackNames) {
+    const fallbackValue = pickValueFromBody(body[fallbackName])
+    if (fallbackValue) return fallbackValue
+  }
+
+  for (const field of fields) {
+    if (field.type !== type) continue
+    const candidate = pickValueFromBody(body[field.name])
+    if (candidate) return candidate
+  }
+
+  return undefined
+}
+
+function extractLeadDataEmail(
+  fields: FormField[],
+  data: Record<string, unknown> | null | undefined
+): string | undefined {
+  if (!data) return undefined
+
+  const directEmail = pickValueFromBody(data.email)
+  if (directEmail) return directEmail.toLowerCase()
+
+  for (const field of fields) {
+    if (field.type !== 'email') continue
+    const candidate = pickValueFromBody(data[field.name])
+    if (candidate) return candidate.toLowerCase()
+  }
+
+  return undefined
 }
 
 let ratelimit: Ratelimit | null = null
@@ -44,7 +90,7 @@ function getRateLimit() {
   return ratelimit
 }
 
-const INTERNAL_FIELDS = ['_hp', '_fp', '_start_time', '_utm_source', '_utm_medium', '_utm_campaign', '_utm_term', '_utm_content', '_referrer', '_variant_id', '_progressive']
+const INTERNAL_FIELDS = ['_hp', '_fp', '_start_time', '_utm_source', '_utm_medium', '_utm_campaign', '_utm_term', '_utm_content', '_referrer', '_variant_id', '_progressive', '_draft_id']
 
 export async function POST(
   req: NextRequest,
@@ -72,16 +118,17 @@ export async function POST(
   }
 
   const body = (await req.json()) as Record<string, unknown>
-  const email = typeof body.email === 'string' ? body.email : undefined
-  const phone = typeof body.phone === 'string' ? body.phone : undefined
 
   // Honeypot check — silent reject bots
   if (body._hp) {
     return NextResponse.json({ success: true, message: form.submit_message })
   }
 
-  // Validate required fields
   const fields = getActiveFields(form.fields, form.settings)
+  const email = extractFieldValueByType(fields, body, 'email', ['email'])
+  const phone = extractFieldValueByType(fields, body, 'phone', ['phone', 'telefone', 'celular'])
+
+  // Validate required fields
   const errors = validateFormSubmission(fields, body)
 
   if (Object.keys(errors).length > 0) {
@@ -100,6 +147,7 @@ export async function POST(
   const utmContent = typeof body._utm_content === 'string' ? body._utm_content : null
   const referrer = typeof body._referrer === 'string' ? body._referrer : null
   const variantId = typeof body._variant_id === 'string' ? body._variant_id : null
+  const draftId = typeof body._draft_id === 'string' ? body._draft_id : null
 
   // Detect duplicate
   const duplicateId = await detectDuplicate({
@@ -124,14 +172,25 @@ export async function POST(
     ...(utmContent ? { utm_content: utmContent } : {}),
     ...(referrer ? { referrer } : {}),
   }
+  const attributionSnapshot = buildAttributionSnapshot({
+    utm_source: utmSource,
+    utm_medium: utmMedium,
+    utm_campaign: utmCampaign,
+    utm_term: utmTerm,
+    utm_content: utmContent,
+    referrer,
+    form_id: formId,
+    variant_id: variantId,
+  })
 
   // Calculate enhanced lead score
   const emailDomain = email ? email.split('@')[1] ?? '' : ''
+  const phoneDigitsCount = phone ? phone.replace(/\D/g, '').length : 0
   const filledFields = Object.entries(cleanData).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
   const scoringResult = calculateEnhancedLeadScore({
     data: cleanData as Record<string, unknown>,
     emailDomain,
-    phoneValid: !!phone && phone.length >= 8,
+    phoneValid: phoneDigitsCount >= 10,
     timeToCompleteSeconds: startTime ? Math.round(startTime / 1000) : 0,
     deviceType: /mobile|android|iphone/i.test(userAgent) ? 'mobile' : 'desktop',
     isVPN: false,
@@ -157,11 +216,11 @@ export async function POST(
       .orderBy(desc(leads.created_at))
       .limit(50)
 
-    const existingLead = existingLeads.find(l => {
-      const data = l.data as Record<string, unknown> | null
-      if (!data) return false
-      const leadEmail = String(data.email || '').toLowerCase().trim()
-      return leadEmail === email.toLowerCase().trim()
+    const currentEmail = email.toLowerCase().trim()
+    const existingLead = existingLeads.find((leadRow) => {
+      const data = leadRow.data as Record<string, unknown> | null
+      const leadEmail = extractLeadDataEmail(fields, data)
+      return !!leadEmail && leadEmail === currentEmail
     })
 
     if (existingLead) {
@@ -185,6 +244,8 @@ export async function POST(
           utm_content: utmContent,
           referrer,
           variant_id: variantId,
+          attribution_snapshot: attributionSnapshot,
+          stage_changed_at: new Date(),
           updated_at: new Date(),
         })
         .where(eq(leads.id, existingLead.id))
@@ -218,6 +279,8 @@ export async function POST(
         utm_content: utmContent,
         referrer,
         variant_id: variantId,
+        attribution_snapshot: attributionSnapshot,
+        stage_changed_at: new Date(),
       }).returning()
       lead = newLead
 
@@ -226,6 +289,12 @@ export async function POST(
         type: 'created',
         description: `Lead capturado via formulário "${form.name}"`,
         metadata: utmSource ? { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign } : undefined,
+      })
+      await recordLeadEvent({
+        leadId: lead.id,
+        type: 'lead_created',
+        description: `Lead capturado via formulario "${form.name}"`,
+        metadata: attributionSnapshot,
       })
     }
   } else {
@@ -247,6 +316,8 @@ export async function POST(
       utm_content: utmContent,
       referrer,
       variant_id: variantId,
+      attribution_snapshot: attributionSnapshot,
+      stage_changed_at: new Date(),
     }).returning()
     lead = newLead
 
@@ -256,6 +327,12 @@ export async function POST(
       type: 'created',
       description: `Lead capturado via formulário "${form.name}"`,
       metadata: utmSource ? { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign } : undefined,
+    })
+    await recordLeadEvent({
+      leadId: lead.id,
+      type: 'lead_created',
+      description: `Lead capturado via formulario "${form.name}"`,
+      metadata: attributionSnapshot,
     })
   }
 
@@ -269,25 +346,121 @@ export async function POST(
     },
   })
 
+  const webhookPayload: Record<string, unknown> = {
+    ...cleanData,
+    _form_id: formId,
+    _form_name: form.name,
+    _workspace_id: form.workspace_id,
+    _lead_id: lead.id,
+    _lead_status: lead.status ?? 'new',
+    _score: leadScore,
+    _variant_id: variantId,
+    _is_duplicate: !!lead.is_duplicate,
+    _duplicate_of: lead.duplicate_of ?? null,
+    _ip_address: ip,
+    _fingerprint: fingerprint,
+    _user_agent: userAgent,
+    _time_to_complete_seconds: completionSeconds,
+    _submitted_at: new Date().toISOString(),
+    _utm_source: utmSource,
+    _utm_medium: utmMedium,
+    _utm_campaign: utmCampaign,
+    _utm_term: utmTerm,
+    _utm_content: utmContent,
+    _referrer: referrer,
+    form: {
+      id: formId,
+      name: form.name,
+      workspace_id: form.workspace_id,
+    },
+    lead: {
+      id: lead.id,
+      status: lead.status ?? 'new',
+      score: leadScore,
+      is_duplicate: !!lead.is_duplicate,
+      duplicate_of: lead.duplicate_of ?? null,
+      created_at: lead.created_at ? new Date(lead.created_at).toISOString() : null,
+      updated_at: lead.updated_at ? new Date(lead.updated_at).toISOString() : null,
+    },
+    tracking: {
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      utm_term: utmTerm,
+      utm_content: utmContent,
+      referrer,
+      variant_id: variantId,
+      ip_address: ip,
+      user_agent: userAgent,
+      fingerprint,
+      time_to_complete_seconds: completionSeconds,
+    },
+    answers: cleanData,
+  }
+
   // Update form submission count (fire and forget)
   db.update(forms)
     .set({ total_submissions: (form.total_submissions ?? 0) + 1 })
     .where(eq(forms.id, formId))
     .catch(console.error)
 
+  if (draftId) {
+    db
+      .update(formSessionDrafts)
+      .set({
+        status: 'converted',
+        converted_lead_id: lead.id,
+        updated_at: new Date(),
+      })
+      .where(eq(formSessionDrafts.id, draftId))
+      .catch(console.error)
+  }
+
+  const consentFields = fields.filter((field) => {
+    if (!['checkbox', 'radio'].includes(field.type)) return false
+    const combined = `${field.name} ${field.label}`.toLowerCase()
+    return combined.includes('consent') || combined.includes('termo') || combined.includes('lgpd') || combined.includes('autoriz')
+  })
+
+  if (consentFields.length > 0) {
+    const consentRows = consentFields
+      .map((field) => {
+        const value = body[field.name]
+        const granted = Array.isArray(value)
+          ? value.length > 0
+          : value !== undefined && String(value).trim().length > 0
+        return {
+          workspace_id: form.workspace_id!,
+          lead_id: lead.id,
+          form_id: formId,
+          consent_key: field.name,
+          consent_text: field.label ?? null,
+          consent_version: 'v1',
+          granted,
+          ip_address: ip,
+          user_agent: userAgent,
+        }
+      })
+      .filter((row) => row.granted)
+
+    if (consentRows.length > 0) {
+      db.insert(leadConsents).values(consentRows).catch(console.error)
+    }
+  }
+
   // Async: enrich IP + dispatch webhooks + WhatsApp alert
   Promise.all([
     enrichLeadWithIP(lead.id, ip, userAgent),
-    dispatchWebhooksForLead(lead.id, formId, {
-      ...cleanData,
-      _form_name: form.name,
-      _lead_id: lead.id,
-      _utm_source: utmSource,
-      _utm_medium: utmMedium,
-      _utm_campaign: utmCampaign,
-      _variant_id: variantId,
-      _score: leadScore,
+    assignLeadByRoutingRules({
+      workspaceId: form.workspace_id!,
+      leadId: lead.id,
+      data: cleanData as Record<string, unknown>,
+      score: leadScore,
+      utmSource,
+      utmCampaign,
+      region: null,
     }),
+    dispatchWebhooksForLead(lead.id, formId, form.workspace_id ?? '', webhookPayload),
     notifyWhatsApp({
       workspaceId: form.workspace_id!,
       leadData: cleanData as Record<string, unknown>,

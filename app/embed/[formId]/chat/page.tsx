@@ -69,7 +69,6 @@ export default async function ChatEmbedPage({
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: ${theme.backgroundColor}; color: ${theme.textColor}; height: 100vh; }
         .chat-container { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; padding: 16px; }
         .chat-header { padding: 16px 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 16px; }
-        .chat-header h1 { font-size: 18px; font-weight: 700; }
         .chat-header p { font-size: 13px; opacity: 0.7; margin-top: 4px; }
         .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; }
         .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; animation: fadeIn 0.3s ease; }
@@ -95,13 +94,14 @@ export default async function ChatEmbedPage({
         @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
       `}</style>
 
-      <div className="chat-container" id="chat-container">
-        <div className="chat-header">
-          <h1>{form.name}</h1>
-          {form.description && <p>{form.description}</p>}
-        </div>
-        <div className="messages" id="messages"></div>
-        <div className="input-area" id="input-area"></div>
+      <div className="chat-container" id="chat-container" suppressHydrationWarning>
+        {form.description ? (
+          <div className="chat-header">
+            <p>{form.description}</p>
+          </div>
+        ) : null}
+        <div className="messages" id="messages" suppressHydrationWarning></div>
+        <div className="input-area" id="input-area" suppressHydrationWarning></div>
       </div>
 
       <script dangerouslySetInnerHTML={{ __html: `

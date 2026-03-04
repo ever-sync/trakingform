@@ -32,6 +32,7 @@ import { FieldEditor } from './FieldEditor'
 import { AIFormDialog } from './AIFormDialog'
 import { ABTestPanel } from './ABTestPanel'
 import { StepBreakEditor, type StepConfig } from './StepBreakEditor'
+import { FormWebhookSelector } from './FormWebhookSelector'
 
 interface FormBuilderProps {
   formId: string
@@ -69,6 +70,13 @@ const DEFAULT_LABELS: Record<FormField['type'], string> = {
   checkbox: 'Caixa de selecao',
   date: 'Data',
   hidden: 'Campo oculto',
+}
+
+const DEFAULT_PLACEHOLDERS: Partial<Record<FormField['type'], string>> = {
+  text: 'Digite aqui',
+  email: 'voce@exemplo.com',
+  phone: '(11) 91234-5678',
+  textarea: 'Digite sua mensagem',
 }
 
 const DEFAULT_THEME: BuilderThemeState = {
@@ -288,22 +296,21 @@ function FormPreview({
 
 export function FormBuilder({
   formId,
-  initialName: _initialName,
+  initialName,
   initialFields,
   initialSettings,
   initialSubmitRedirectUrl,
   initialSubmitMessage,
   initialTheme,
 }: FormBuilderProps) {
-  void _initialName
-
+  const [formName, setFormName] = useState(initialName)
   const [fields, setFields] = useState<FormField[]>(initialFields)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [view, setView] = useState<'canvas' | 'preview'>('canvas')
-  const [settingsTab, setSettingsTab] = useState<'general' | 'ab'>('general')
+  const [settingsTab, setSettingsTab] = useState<'general' | 'ab' | 'webhooks'>('general')
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop')
   const [submitRedirectUrl, setSubmitRedirectUrl] = useState(initialSubmitRedirectUrl ?? '')
   const [submitMessage, setSubmitMessage] = useState(initialSubmitMessage ?? 'Obrigado! Recebemos suas informacoes.')
@@ -399,6 +406,14 @@ export function FormBuilder({
 
   const saveForm = useCallback(
     async ({ manual, publish }: { manual?: boolean; publish?: boolean } = {}) => {
+      const normalizedFormName = formName.trim()
+      if (!normalizedFormName) {
+        if (manual || publish) {
+          toast.error('Informe o titulo do formulario antes de salvar.')
+        }
+        return
+      }
+
       if (publish && validation.hasErrors) {
         toast.error('Corrija os erros antes de publicar.')
         return
@@ -419,6 +434,7 @@ export function FormBuilder({
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            name: normalizedFormName,
             fields,
             publish: !!publish,
             submit_redirect_url: submitRedirectUrl.trim() || null,
@@ -453,6 +469,7 @@ export function FormBuilder({
     [
       fields,
       formId,
+      formName,
       submitMessage,
       submitRedirectUrl,
       theme,
@@ -495,7 +512,7 @@ export function FormBuilder({
       name: `${type}_${Date.now()}`,
       label: DEFAULT_LABELS[type],
       required: false,
-      placeholder: '',
+      placeholder: DEFAULT_PLACEHOLDERS[type] ?? '',
       options: ['select', 'radio', 'checkbox'].includes(type)
         ? [{ label: 'Opcao 1', value: 'opcao_1' }]
         : undefined,
@@ -648,16 +665,28 @@ export function FormBuilder({
         <div className="border-b bg-white px-4 py-3">
           <Tabs
             value={settingsTab}
-            onValueChange={(value) => setSettingsTab(value as 'general' | 'ab')}
+            onValueChange={(value) => setSettingsTab(value as 'general' | 'ab' | 'webhooks')}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-[340px] grid-cols-2">
+            <TabsList className="grid w-full max-w-[520px] grid-cols-3">
               <TabsTrigger value="general">Configurações</TabsTrigger>
+              <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
               <TabsTrigger value="ab">A/B Testing</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="mt-3 space-y-3">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="space-y-1 md:col-span-2 xl:col-span-2">
+                  <Label className="text-xs">Titulo do formulario</Label>
+                  <Input
+                    placeholder="Ex: Captacao de leads"
+                    value={formName}
+                    onChange={(event) => {
+                      setFormName(event.target.value)
+                      markDirty()
+                    }}
+                  />
+                </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Redirect URL apos envio</Label>
                   <Input
@@ -812,6 +841,10 @@ export function FormBuilder({
                   }}
                 />
               ) : null}
+            </TabsContent>
+
+            <TabsContent value="webhooks" className="mt-3">
+              <FormWebhookSelector formId={formId} />
             </TabsContent>
 
             <TabsContent value="ab" className="mt-3">

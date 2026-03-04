@@ -124,7 +124,7 @@ export async function DELETE(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   const { formId } = await params
-  const variantId = req.nextUrl.searchParams.get('variantId')
+  const variantId = new URL(req.url).searchParams.get('variantId')
   if (!variantId) {
     return NextResponse.json({ error: 'variantId is required' }, { status: 400 })
   }

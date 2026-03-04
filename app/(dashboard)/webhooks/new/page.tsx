@@ -42,11 +42,14 @@ export default function NewWebhookPage() {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed')
+      const payload = (await res.json()) as { error?: string }
+      if (!res.ok) throw new Error(payload.error || 'Falha ao criar webhook')
       toast.success('Webhook criado!')
-      router.push('/webhooks')
-    } catch {
-      toast.error('Erro ao criar webhook.')
+      router.replace('/webhooks')
+      router.refresh()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao criar webhook.'
+      toast.error(message)
     } finally {
       setSaving(false)
     }

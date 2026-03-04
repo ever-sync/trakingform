@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Edit } from 'lucide-react'
 import { QRCodeDialog } from '@/components/forms/QRCodeDialog'
+import { UTMGenerator } from '@/components/forms/UTMGenerator'
 
 function extractUtmSource(data: unknown): string | null {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null
@@ -54,7 +55,11 @@ export default async function FormDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const workspace = await getOrCreateWorkspace(user.id, user.email ?? 'user@example.com')
+  const workspace = await getOrCreateWorkspace(
+    user.id,
+    user.email ?? 'user@example.com',
+    user.user_metadata?.workspace_name as string | undefined,
+  )
 
   const form = await db.query.forms.findFirst({
     where: eq(forms.id, formId),
@@ -289,6 +294,8 @@ export default async function FormDetailPage({
         </TabsContent>
 
         <TabsContent value="embed" className="mt-4 space-y-4">
+          <UTMGenerator appUrl={appUrl} formId={formId} formName={form.name} />
+
           <Card>
             <CardHeader><CardTitle className="text-base">Iframe (simples)</CardTitle></CardHeader>
             <CardContent>
@@ -328,6 +335,7 @@ export default async function FormDetailPage({
   data-form-id="${formId}"
   data-mode="popup"
   data-trigger-label="Fale conosco"
+  data-trigger-bottom="20"
 ></script>`}
               </pre>
             </CardContent>
@@ -343,6 +351,7 @@ export default async function FormDetailPage({
   data-form-id="${formId}"
   data-mode="slide-right"
   data-trigger-label="Contato"
+  data-trigger-bottom="78"
 ></script>`}
               </pre>
               <p className="text-xs text-muted-foreground mt-2">

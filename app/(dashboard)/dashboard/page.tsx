@@ -41,7 +41,11 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  const workspace = await getOrCreateWorkspace(user.id, user.email ?? 'user@example.com')
+  const workspace = await getOrCreateWorkspace(
+    user.id,
+    user.email ?? 'user@example.com',
+    user.user_metadata?.workspace_name as string | undefined,
+  )
 
   const [formRows, leadRows, variantRows] = await Promise.all([
     db.select().from(forms).where(eq(forms.workspace_id, workspace.id)),
