@@ -1,4 +1,4 @@
-﻿import { db } from '@/lib/db'
+import { db } from '@/lib/db'
 import { leadAssignmentLogs, leadRoutingRulesV2, leads, workspaceMembers } from '@/lib/db/schema'
 import { and, asc, eq } from 'drizzle-orm'
 
@@ -12,40 +12,63 @@ interface RoutingContext {
   region?: string | null
 }
 
-function evaluateCondition(condition: Record<string, unknown>, ctx: RoutingContext): boolean {
-  const field = String(condition.field ?? '')
-  const operator = String(condition.operator ?? 'equals')
-  const value = condition.value
-
-  let source: unknown = null
-  if (field === 'utm_source') source = ctx.utmSource
-  else if (field === 'utm_campaign') source = ctx.utmCampaign
-  else if (field === 'score') source = ctx.score
-  else if (field === 'region') source = ctx.region
-  else source = ctx.data[field]
-
-  const sourceStr = String(source ?? '').toLowerCase()
-  const targetStr = String(value ?? '').toLowerCase()
-
-  if (operator === 'equals') return sourceStr === targetStr
-  if (operator === 'contains') return sourceStr.includes(targetStr)
-  if (operator === 'not_equals') return sourceStr !== targetStr
-  if (operator === 'greater_than') return Number(source ?? 0) > Number(value ?? 0)
-  if (operator === 'less_than') return Number(source ?? 0) < Number(value ?? 0)
-  if (operator === 'in') {
-    const arr = Array.isArray(value) ? value : String(value ?? '').split(',')
-    return arr.map((item) => String(item).trim().toLowerCase()).includes(sourceStr)
-  }
-
-  return true
+interface ConditionEvaluation {
+  field: string
+  operator: string
+  expected: unknown
+  actual: unknown
+  matched: boolean
 }
 
-function matchRule(conditions: unknown, ctx: RoutingContext): boolean {
-  if (!Array.isArray(conditions) || conditions.length === 0) return true
-  return conditions.every((condition) => {
-    if (!condition || typeof condition !== 'object' || Array.isArray(condition)) return false
-    return evaluateCondition(condition as Record<string, unknown>, ctx)
-  })
+interface RuleEvaluation {
+  ruleId: string
+  ruleName: string
+  priority: number
+  matched: boolean
+  assignmentMode: string
+  assignmentUserId: string | null
+  conditions: ConditionEvaluation[]
+}
+
+interface AssignOptions {
+  dryRun?: boolean
+}
+
+function resolveConditionSource(field: string, ctx: RoutingContext): unknown {
+  if (field === 'utm_source') return ctx.utmSource
+  if (field === 'utm_campaign') return ctx.utmCampaign
+  if (field === 'score') return ctx.score
+  if (field === 'region') return ctx.region
+  return ctx.data[field]
+}
+
+function evaluateCondition(condition: Record<string, unknown>, ctx: RoutingContext): ConditionEvaluation {
+  const field = String(condition.field ?? '')
+  const operator = String(condition.operator ?? 'equals')
+  const expected = condition.value
+  const actual = resolveConditionSource(field, ctx)
+
+  const actualStr = String(actual ?? '').toLowerCase()
+  const expectedStr = String(expected ?? '').toLowerCase()
+
+  let matched = true
+  if (operator === 'equals') matched = actualStr === expectedStr
+  else if (operator === 'contains') matched = actualStr.includes(expectedStr)
+  else if (operator === 'not_equals') matched = actualStr !== expectedStr
+  else if (operator === 'greater_than') matched = Number(actual ?? 0) > Number(expected ?? 0)
+  else if (operator === 'less_than') matched = Number(actual ?? 0) < Number(expected ?? 0)
+  else if (operator === 'in') {
+    const arr = Array.isArray(expected) ? expected : String(expected ?? '').split(',')
+    matched = arr.map((item) => String(item).trim().toLowerCase()).includes(actualStr)
+  }
+
+  return {
+    field,
+    operator,
+    expected,
+    actual,
+    matched,
+  }
 }
 
 async function getRoundRobinOwner(workspaceId: string): Promise<string | null> {
@@ -60,32 +83,71 @@ async function getRoundRobinOwner(workspaceId: string): Promise<string | null> {
   return members[randomIndex]?.user_id ?? null
 }
 
-export async function assignLeadByRoutingRules(ctx: RoutingContext) {
-  const rules = await db
+async function fetchActiveRules(workspaceId: string) {
+  return db
     .select()
     .from(leadRoutingRulesV2)
-    .where(and(
-      eq(leadRoutingRulesV2.workspace_id, ctx.workspaceId),
-      eq(leadRoutingRulesV2.is_active, true)
-    ))
+    .where(and(eq(leadRoutingRulesV2.workspace_id, workspaceId), eq(leadRoutingRulesV2.is_active, true)))
     .orderBy(asc(leadRoutingRulesV2.priority), asc(leadRoutingRulesV2.created_at))
+}
 
-  for (const rule of rules) {
-    if (!matchRule(rule.conditions, ctx)) continue
+export function evaluateRulesForContext(
+  rules: Awaited<ReturnType<typeof fetchActiveRules>>,
+  ctx: RoutingContext
+): RuleEvaluation[] {
+  return rules.map((rule) => {
+    const rawConditions = Array.isArray(rule.conditions) ? rule.conditions : []
+    const conditions: ConditionEvaluation[] = rawConditions
+      .filter((condition) => condition && typeof condition === 'object' && !Array.isArray(condition))
+      .map((condition) => evaluateCondition(condition as Record<string, unknown>, ctx))
 
-    const assignment = (rule.assignment && typeof rule.assignment === 'object' && !Array.isArray(rule.assignment))
-      ? rule.assignment as Record<string, unknown>
+    const matched = conditions.length === 0 ? true : conditions.every((condition) => condition.matched)
+
+    const assignment = rule.assignment && typeof rule.assignment === 'object' && !Array.isArray(rule.assignment)
+      ? (rule.assignment as Record<string, unknown>)
       : {}
 
-    let assignedTo: string | null = null
-    const mode = String(assignment.mode ?? 'none')
+    const assignmentMode = String(assignment.mode ?? 'none')
+    const assignmentUserId = typeof assignment.user_id === 'string' ? assignment.user_id : null
 
-    if (mode === 'fixed_user') {
-      assignedTo = typeof assignment.user_id === 'string' ? assignment.user_id : null
-    } else if (mode === 'round_robin') {
-      assignedTo = await getRoundRobinOwner(ctx.workspaceId)
+    return {
+      ruleId: rule.id,
+      ruleName: rule.name,
+      priority: rule.priority,
+      matched,
+      assignmentMode,
+      assignmentUserId,
+      conditions,
     }
+  })
+}
 
+export async function assignLeadByRoutingRules(ctx: RoutingContext, options?: AssignOptions) {
+  const dryRun = options?.dryRun === true
+  const rules = await fetchActiveRules(ctx.workspaceId)
+  const evaluation = evaluateRulesForContext(rules, ctx)
+  const firstMatch = evaluation.find((item) => item.matched)
+
+  if (!firstMatch) {
+    return {
+      assigned: false,
+      dryRun,
+      leadId: ctx.leadId,
+      ruleId: null,
+      ruleName: null,
+      assignedTo: null,
+      evaluation,
+    }
+  }
+
+  let assignedTo: string | null = null
+  if (firstMatch.assignmentMode === 'fixed_user') {
+    assignedTo = firstMatch.assignmentUserId
+  } else if (firstMatch.assignmentMode === 'round_robin') {
+    assignedTo = await getRoundRobinOwner(ctx.workspaceId)
+  }
+
+  if (!dryRun) {
     await db
       .update(leads)
       .set({ owner_id: assignedTo, updated_at: new Date() })
@@ -94,31 +156,24 @@ export async function assignLeadByRoutingRules(ctx: RoutingContext) {
     await db.insert(leadAssignmentLogs).values({
       workspace_id: ctx.workspaceId,
       lead_id: ctx.leadId,
-      rule_id: rule.id,
+      rule_id: firstMatch.ruleId,
       assigned_to: assignedTo,
-      reason: `Matched routing rule: ${rule.name}`,
+      reason: `Matched routing rule: ${firstMatch.ruleName}`,
       metadata: {
-        mode,
+        mode: firstMatch.assignmentMode,
         utm_source: ctx.utmSource ?? null,
         score: ctx.score,
       },
     })
-
-    return {
-      assigned: true,
-      leadId: ctx.leadId,
-      ruleId: rule.id,
-      ruleName: rule.name,
-      assignedTo,
-    }
   }
 
   return {
-    assigned: false,
+    assigned: !dryRun,
+    dryRun,
     leadId: ctx.leadId,
-    ruleId: null,
-    ruleName: null,
-    assignedTo: null,
+    ruleId: firstMatch.ruleId,
+    ruleName: firstMatch.ruleName,
+    assignedTo,
+    evaluation,
   }
 }
-

@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { leadEnrichments, leads } from '@/lib/db/schema'
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const { user, workspace } = await getRequestWorkspace()
   if (!user || !workspace) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = (await req.json()) as { leadId?: string }
+  const body = (await req.json()) as { leadId?: string; dryRun?: boolean }
   if (!body.leadId) return NextResponse.json({ error: 'leadId is required' }, { status: 422 })
 
   const [lead] = await db
@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
     utmSource: lead.utm_source,
     utmCampaign: lead.utm_campaign,
     region: enrichment?.region ?? null,
+  }, {
+    dryRun: body.dryRun === true,
   })
 
   return NextResponse.json(result)
