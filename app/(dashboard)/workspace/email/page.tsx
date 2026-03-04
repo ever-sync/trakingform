@@ -1,4 +1,5 @@
 import { EmailSettingsClient } from '@/components/workspace/EmailSettingsClient'
+import { EmailSuppressionsClient } from '@/components/workspace/EmailSuppressionsClient'
 
 export default function WorkspaceEmailPage() {
   return (
@@ -9,6 +10,7 @@ export default function WorkspaceEmailPage() {
       </div>
 
       <EmailSettingsClient />
+      <EmailSuppressionsClient />
     </div>
   )
 }
