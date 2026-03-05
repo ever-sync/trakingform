@@ -867,7 +867,8 @@ export default async function EmbedFormPage({
             } catch(err) {
               btn.disabled = false;
               btn.textContent = 'Enviar';
-              alert('Erro ao enviar. Tente novamente.');
+              console.error('[TrackingForm] Submit error:', err);
+              alert('Erro ao enviar: ' + (err && err.message ? err.message : String(err)));
             }
           });
         ` }} />
