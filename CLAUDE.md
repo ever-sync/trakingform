@@ -59,7 +59,7 @@ middleware.ts       # Next.js auth guard
 
 ## UI Design Guidelines
 - Dark sidebar (#0f0f13) + white content area
-- Accent color: #6366f1 (indigo)
+- Accent color: #000000 (black)
 - Font: Geist Sans
 - Loading: skeleton screens (not spinners)
 - Toasts: bottom-right via sonner, auto-dismiss 4s

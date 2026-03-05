@@ -24,7 +24,7 @@ export default function WorkspaceMembersPage() {
         <CardContent>
           <div className="flex gap-2">
             <Input placeholder="email@empresa.com" className="flex-1" />
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
+            <Button className="bg-black hover:bg-gray-800">
               <UserPlus className="h-4 w-4 mr-2" />
               Convidar
             </Button>

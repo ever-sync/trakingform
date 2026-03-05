@@ -45,7 +45,7 @@ export function SortableFieldItem({ field, isSelected, errorCount = 0, onSelect,
       className={cn(
         'flex items-center gap-2.5 p-3 rounded-lg border bg-white cursor-pointer transition-all select-none',
         isSelected
-          ? 'border-indigo-500 ring-1 ring-indigo-500 shadow-sm'
+          ? 'border-black ring-1 ring-black shadow-sm'
           : 'border-gray-200 hover:border-gray-300 hover:shadow-sm',
         isDragging && 'opacity-40 shadow-xl scale-[1.02]'
       )}

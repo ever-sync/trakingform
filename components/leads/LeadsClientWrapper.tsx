@@ -585,7 +585,7 @@ export function LeadsClientWrapper() {
                       <span className="text-muted-foreground">{source.count}</span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100">
-                      <div className="h-2 rounded-full bg-indigo-500" style={{ width: `${percentage}%` }} />
+                      <div className="h-2 rounded-full bg-gray-1000" style={{ width: `${percentage}%` }} />
                     </div>
                   </div>
                 )

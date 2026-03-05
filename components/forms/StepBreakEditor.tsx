@@ -136,7 +136,7 @@ export function StepBreakEditor({ steps, fields, onChange, onAutoSplit }: StepBr
                         event.dataTransfer.setData('text/plain', field.id)
                         setDragFieldId(field.id)
                       }}
-                      className="rounded bg-indigo-50 px-2 py-1 text-[11px] text-indigo-700"
+                      className="rounded bg-gray-100 px-2 py-1 text-[11px] text-gray-900"
                       title={`${field.label} (${field.type})`}
                     >
                       {field.label || field.id}

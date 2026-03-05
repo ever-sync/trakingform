@@ -49,10 +49,18 @@ export function Sidebar() {
   const supabase = createClient()
   const { setTheme, theme } = useTheme()
   const [userEmail, setUserEmail] = useState<string>('')
+  const [userName, setUserName] = useState<string>('')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) setUserEmail(user.email)
+      const fullName = user?.user_metadata?.full_name as string | undefined
+      if (fullName) {
+        setUserName(fullName)
+      } else if (user?.email) {
+        const name = user.email.split('@')[0].split('.')[0]
+        setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+      }
     })
   }, [supabase])
 
@@ -71,7 +79,7 @@ export function Sidebar() {
     <div className="flex h-full w-[280px] flex-col bg-white border-r border-gray-100 p-4">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
           <span className="text-white font-bold text-sm">T</span>
         </div>
         <span className="font-bold text-xl text-gray-900 tracking-tight">TrackingForm</span>
@@ -90,7 +98,7 @@ export function Sidebar() {
                 : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
             )}
           >
-            <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive(item.href) ? "text-white" : "text-gray-400")} />
+            <item.icon className={cn("w-5 h-5 shrink-0", isActive(item.href) ? "text-white" : "text-gray-400")} />
             {item.name}
           </Link>
         ))}
@@ -110,7 +118,7 @@ export function Sidebar() {
                 : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
             )}
           >
-            <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive(item.href) ? "text-white" : "text-gray-400")} />
+            <item.icon className={cn("w-5 h-5 shrink-0", isActive(item.href) ? "text-white" : "text-gray-400")} />
             {item.name}
           </Link>
         ))}
@@ -123,14 +131,14 @@ export function Sidebar() {
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
         >
           <HeadphonesIcon className="w-5 h-5 text-gray-400" />
-          Support / Help-desk
+          Suporte
         </Link>
         <button
           onClick={handleSignOut}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
         >
           <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500" />
-          Logout
+          Sair
         </button>
       </div>
 
@@ -143,7 +151,7 @@ export function Sidebar() {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold truncate">Admin</p>
+            <p className="text-sm font-bold truncate">{userName || 'Usuário'}</p>
             <p className="text-xs text-white/70 truncate">{userEmail || 'Carregando...'}</p>
           </div>
           <button className="p-1 hover:bg-white/10 rounded-md transition-colors">
@@ -161,7 +169,7 @@ export function Sidebar() {
             )}
           >
             <Sun className="w-3.5 h-3.5" />
-            Light
+            Claro
           </button>
           <button
             onClick={() => setTheme('dark')}
@@ -171,7 +179,7 @@ export function Sidebar() {
             )}
           >
             <Moon className="w-3.5 h-3.5" />
-            Dark
+            Escuro
           </button>
         </div>
       </div>

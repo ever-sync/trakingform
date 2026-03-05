@@ -574,7 +574,7 @@ export function ABTestPanel({
                       </div>
                       <div className="h-2 rounded-full bg-gray-100">
                         <div
-                          className="h-2 rounded-full bg-indigo-500"
+                          className="h-2 rounded-full bg-gray-1000"
                           style={{ width: `${conversionWidth}%` }}
                         />
                       </div>

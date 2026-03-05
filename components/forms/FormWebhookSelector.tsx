@@ -154,7 +154,7 @@ export function FormWebhookSelector({ formId }: FormWebhookSelectorProps) {
                           <span
                             className={cn(
                               'mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded border',
-                              selected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white'
+                              selected ? 'border-black bg-black text-white' : 'border-gray-300 bg-white'
                             )}
                           >
                             <Check className={cn('h-3 w-3', selected ? 'opacity-100' : 'opacity-0')} />
@@ -189,7 +189,7 @@ export function FormWebhookSelector({ formId }: FormWebhookSelectorProps) {
           <div className="flex flex-wrap gap-1.5">
             {selectedOptions.length > 0 ? (
               selectedOptions.map((option) => (
-                <Badge key={option.id} variant="secondary" className="flex items-center gap-1 bg-indigo-50 text-indigo-700">
+                <Badge key={option.id} variant="secondary" className="flex items-center gap-1 bg-gray-100 text-gray-900">
                   <Webhook className="h-3 w-3" />
                   <span className="max-w-[220px] truncate">{option.name}</span>
                 </Badge>
@@ -202,7 +202,7 @@ export function FormWebhookSelector({ formId }: FormWebhookSelectorProps) {
           <div className="flex justify-end">
             <Button
               size="sm"
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="bg-black hover:bg-gray-800"
               onClick={() => void saveSelection()}
               disabled={saving}
             >

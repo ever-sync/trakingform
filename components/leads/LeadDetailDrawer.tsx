@@ -87,7 +87,7 @@ function getStatusConfig(status: string) {
     case 'new':
       return { label: 'Novo', className: 'bg-blue-50 text-blue-700 border-blue-200' }
     case 'contacted':
-      return { label: 'Contactado', className: 'bg-purple-50 text-purple-700 border-purple-200' }
+      return { label: 'Contactado', className: 'bg-gray-100 text-gray-700 border-gray-200' }
     case 'qualified':
       return { label: 'Qualificado', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
     case 'converted':
@@ -143,7 +143,7 @@ function CopyableText({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors group"
+      className="inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-black transition-colors group"
     >
       {text}
       {copied ? (
@@ -205,14 +205,14 @@ export function LeadDetailDrawer({ leadId, onClose }: LeadDetailDrawerProps) {
         <div className="overflow-y-auto px-5 pb-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
               <p className="text-sm text-muted-foreground">Carregando detalhes...</p>
             </div>
           ) : lead ? (
             <div className="space-y-4">
               {/* ── Hero Header ── */}
               <div className="flex items-start gap-4 py-2">
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-indigo-500 to-purple-600 text-white font-bold text-lg shadow-md shrink-0">
+                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-gray-800 to-black text-white font-bold text-lg shadow-md shrink-0">
                   {getInitials(leadName)}
                 </div>
                 <div className="flex-1 min-w-0">

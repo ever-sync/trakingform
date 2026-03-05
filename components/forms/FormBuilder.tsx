@@ -677,7 +677,7 @@ export function FormBuilder({
               Salvar
             </Button>
 
-            <Button size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700" onClick={() => void saveForm({ manual: true, publish: true })} disabled={saving}>
+            <Button size="sm" className="h-8 bg-black hover:bg-gray-800" onClick={() => void saveForm({ manual: true, publish: true })} disabled={saving}>
               <Upload className="mr-1.5 h-3.5 w-3.5" />
               Publicar
             </Button>
@@ -935,11 +935,11 @@ export function FormBuilder({
                         <div key={field.id}>
                           {isStepStart && (
                             <div className="flex items-center gap-2 mb-2 mt-1">
-                              <div className="h-px flex-1 bg-indigo-200" />
-                              <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider">
+                              <div className="h-px flex-1 bg-gray-200" />
+                              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider">
                                 {steps[stepIdx].title}
                               </span>
-                              <div className="h-px flex-1 bg-indigo-200" />
+                              <div className="h-px flex-1 bg-gray-200" />
                             </div>
                           )}
                           <SortableFieldItem

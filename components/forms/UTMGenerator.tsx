@@ -260,9 +260,9 @@ export function UTMGenerator({ appUrl, formId, formName }: UTMGeneratorProps) {
           )}
         </div>
 
-        <div className="space-y-2 rounded-lg border border-indigo-200 bg-indigo-50/60 p-3">
+        <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium text-indigo-900">Link final rastreado</p>
+            <p className="text-sm font-medium text-gray-900">Link final rastreado</p>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={resetAll}>Limpar</Button>
               <Button size="sm" variant="outline" onClick={() => void handleCopyUrl()}>

@@ -39,7 +39,7 @@ export function Topbar({ userEmail }: TopbarProps) {
   const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1)
 
   return (
-    <header className="h-16 lg:h-20 bg-transparent flex items-center justify-between px-4 lg:px-8 z-10">
+    <header className="h-16 lg:h-20 bg-transparent flex items-center justify-between px-6 lg:px-12 z-10">
       <div className="flex items-center gap-3">
         <div className="lg:hidden">
           <Sheet>
@@ -56,9 +56,9 @@ export function Topbar({ userEmail }: TopbarProps) {
         </div>
         <div>
           <h1 className="text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
-            Hello {capitalizedName} <span className="text-yellow-400">👋</span>
+            Olá, {capitalizedName} <span className="text-yellow-400">👋</span>
           </h1>
-          <p className="hidden md:block text-sm text-muted-foreground mt-0.5">Here&apos;s what needs your attention</p>
+          <p className="hidden md:block text-sm text-muted-foreground mt-0.5">Veja o que precisa da sua atenção</p>
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export function Topbar({ userEmail }: TopbarProps) {
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input 
-            placeholder="Search" 
+            placeholder="Pesquisar" 
             className="w-64 pl-9 bg-white border-gray-200 rounded-full h-10 focus-visible:ring-primary shadow-sm"
           />
         </div>

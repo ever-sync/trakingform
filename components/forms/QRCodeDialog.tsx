@@ -57,7 +57,7 @@ export function QRCodeDialog({ formId, formName, appUrl }: QRCodeDialogProps) {
             Escaneie para abrir o formulário. Ideal para imprimir em materiais, stands ou balcões.
           </p>
           <div className="flex gap-2 w-full">
-            <Button onClick={handleDownload} className="flex-1 bg-indigo-600 hover:bg-indigo-700">
+            <Button onClick={handleDownload} className="flex-1 bg-black hover:bg-gray-800">
               <Download className="h-4 w-4 mr-2" />
               Baixar PNG
             </Button>

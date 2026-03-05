@@ -4,7 +4,7 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000
 export const LEAD_STATUSES = [
   { value: 'new', label: 'Novo', color: 'bg-blue-500' },
   { value: 'contacted', label: 'Contatado', color: 'bg-yellow-500' },
-  { value: 'qualified', label: 'Qualificado', color: 'bg-purple-500' },
+  { value: 'qualified', label: 'Qualificado', color: 'bg-gray-800' },
   { value: 'converted', label: 'Convertido', color: 'bg-green-500' },
   { value: 'lost', label: 'Perdido', color: 'bg-red-500' },
 ] as const

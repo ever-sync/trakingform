@@ -28,7 +28,7 @@ export function TemplateSelector({ selectedTemplate, onSelect }: TemplateSelecto
           <Card
             key={template.name}
             className={`cursor-pointer transition-all hover:shadow-md ${
-              selectedTemplate === template.name ? 'ring-2 ring-indigo-500 bg-indigo-50/50' : ''
+              selectedTemplate === template.name ? 'ring-2 ring-black bg-gray-50/50' : ''
             }`}
             onClick={() => onSelect(template.name)}
           >

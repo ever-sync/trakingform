@@ -26,14 +26,14 @@ interface TimelineEvent {
 const EVENT_CONFIG: Record<string, { icon: typeof Clock; color: string; bgLight: string; label: string }> = {
   created:          { icon: Plus,               color: 'bg-emerald-500', bgLight: 'bg-emerald-50',  label: 'Lead capturado' },
   enriched:         { icon: Globe,              color: 'bg-blue-500',    bgLight: 'bg-blue-50',     label: 'Dados enriquecidos' },
-  webhook_sent:     { icon: Zap,                color: 'bg-purple-500',  bgLight: 'bg-purple-50',   label: 'Webhook disparado' },
+  webhook_sent:     { icon: Zap,                color: 'bg-gray-800',  bgLight: 'bg-gray-100',   label: 'Webhook disparado' },
   email_sent:       { icon: Mail,               color: 'bg-orange-500',  bgLight: 'bg-orange-50',   label: 'Email enviado' },
   email_opened:     { icon: MailOpen,            color: 'bg-cyan-500',    bgLight: 'bg-cyan-50',     label: 'Email aberto' },
   email_clicked:    { icon: MousePointerClick,   color: 'bg-teal-500',    bgLight: 'bg-teal-50',     label: 'Link do email clicado' },
   email_failed:     { icon: MailX,               color: 'bg-red-500',     bgLight: 'bg-red-50',      label: 'Falha de envio de email' },
   score_updated:    { icon: BarChart3,           color: 'bg-amber-500',   bgLight: 'bg-amber-50',    label: 'Score atualizado' },
   ab_winner_applied:{ icon: Trophy,              color: 'bg-emerald-500', bgLight: 'bg-emerald-50',  label: 'Vencedora A/B aplicada' },
-  status_change:    { icon: RefreshCw,           color: 'bg-indigo-500',  bgLight: 'bg-indigo-50',   label: 'Status alterado' },
+  status_change:    { icon: RefreshCw,           color: 'bg-gray-1000',  bgLight: 'bg-gray-100',   label: 'Status alterado' },
   note_added:       { icon: MessageSquare,       color: 'bg-gray-500',    bgLight: 'bg-gray-50',     label: 'Nota adicionada' },
 }
 

@@ -49,8 +49,8 @@ export function AnalyticsCharts({ dailyLeads, scoreBuckets, formStats }: Props) 
               <AreaChart data={dailyLeads} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#000000" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#000000" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -60,7 +60,7 @@ export function AnalyticsCharts({ dailyLeads, scoreBuckets, formStats }: Props) 
                 <Area
                   type="monotone"
                   dataKey="leads"
-                  stroke="#6366f1"
+                  stroke="#000000"
                   fill="url(#colorLeads)"
                   strokeWidth={2}
                   name="Leads"
@@ -88,7 +88,7 @@ export function AnalyticsCharts({ dailyLeads, scoreBuckets, formStats }: Props) 
                   <XAxis dataKey="range" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#6366f1" name="Leads" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#000000" name="Leads" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -111,7 +111,7 @@ export function AnalyticsCharts({ dailyLeads, scoreBuckets, formStats }: Props) 
                   <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={90} />
                   <Tooltip />
-                  <Bar dataKey="leads" fill="#6366f1" name="Leads" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="leads" fill="#000000" name="Leads" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

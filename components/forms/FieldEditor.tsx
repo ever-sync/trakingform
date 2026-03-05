@@ -154,7 +154,7 @@ export function FieldEditor({ field, errors = [], onUpdate }: FieldEditorProps) 
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 text-xs px-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                  className="h-6 text-xs px-2 text-black hover:text-gray-900 hover:bg-gray-100"
                   onClick={addOption}
                 >
                   <Plus className="h-3 w-3 mr-1" />

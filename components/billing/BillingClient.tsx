@@ -110,11 +110,11 @@ export function BillingClient({ plans, currentPlan, leadsUsed, leadsLimit, hasSu
           const isCurrent = plan.key === currentPlan
           const isLoading = loadingPlan === plan.key
           return (
-            <Card key={plan.key} className={plan.popular ? 'border-indigo-600 shadow-md' : ''}>
+            <Card key={plan.key} className={plan.popular ? 'border-black shadow-md' : ''}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{plan.name}</CardTitle>
-                  {plan.popular && <Badge className="bg-indigo-600">Popular</Badge>}
+                  {plan.popular && <Badge className="bg-black">Popular</Badge>}
                 </div>
                 <CardDescription>{plan.description}</CardDescription>
                 <div className="text-2xl font-bold">
@@ -132,7 +132,7 @@ export function BillingClient({ plans, currentPlan, leadsUsed, leadsLimit, hasSu
                   ))}
                 </ul>
                 <Button
-                  className={`w-full ${plan.popular && !isCurrent ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
+                  className={`w-full ${plan.popular && !isCurrent ? 'bg-black hover:bg-gray-800' : ''}`}
                   variant={plan.popular && !isCurrent ? 'default' : 'outline'}
                   disabled={isCurrent || isLoading}
                   onClick={() => { if (!isCurrent) void handleSubscribe(plan.key) }}

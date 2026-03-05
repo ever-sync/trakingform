@@ -685,7 +685,7 @@ export function EmailTemplateBuilder({
 
       <DragOverlay>
         {activeDragId?.startsWith('palette:') ? (
-          <div className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 shadow-lg">
+          <div className="rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 shadow-lg">
             {activeDragId.replace('palette:', '')}
           </div>
         ) : null}
@@ -702,7 +702,7 @@ function CanvasDropZone({ isEmpty, children }: { isEmpty: boolean; children: Rea
       <div
         ref={setNodeRef}
         className={`flex h-full min-h-[220px] flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 text-center transition-colors ${
-          isOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-gray-200'
+          isOver ? 'border-gray-400 bg-gray-50/50' : 'border-gray-200'
         }`}
       >
         <div className="mb-2 text-3xl">[]</div>
@@ -739,7 +739,7 @@ function SortableBlockItem({
       ref={setNodeRef}
       style={style}
       className={`group flex items-center justify-between rounded-lg border px-3 py-2 ${
-        selected ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-200'
+        selected ? 'border-black bg-gray-50/50' : 'border-gray-200'
       }`}
       onClick={onSelect}
     >

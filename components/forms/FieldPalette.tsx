@@ -30,9 +30,9 @@ export function FieldPalette({ onAddField }: FieldPaletteProps) {
           <button
             key={type}
             onClick={() => onAddField(type)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm transition-all text-left group"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-white hover:text-black hover:shadow-sm transition-all text-left group"
           >
-            <Icon className="h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-indigo-500 transition-colors" />
+            <Icon className="h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-gray-600 transition-colors" />
             {label}
           </button>
         ))}

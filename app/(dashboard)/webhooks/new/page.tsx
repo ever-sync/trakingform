@@ -120,7 +120,7 @@ export default function NewWebhookPage() {
           <div className="flex justify-end gap-3">
             <Button variant="outline" asChild><Link href="/webhooks">Cancelar</Link></Button>
             <Button
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="bg-black hover:bg-gray-800"
               onClick={handleCreate}
               disabled={saving}
             >

@@ -27,7 +27,7 @@ export default function WorkspacePage() {
             <p className="text-xs text-muted-foreground">Usado na URL dos seus formulários</p>
           </div>
           <div className="flex justify-end">
-            <Button className="bg-indigo-600 hover:bg-indigo-700">Salvar alterações</Button>
+            <Button className="bg-black hover:bg-gray-800">Salvar alterações</Button>
           </div>
         </CardContent>
       </Card>

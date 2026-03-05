@@ -137,7 +137,7 @@ export function FormsCardsClient({ initialForms }: FormsCardsClientProps) {
                 <Button size="sm" variant="outline" asChild className="flex-1">
                   <Link href={`/forms/${form.id}/edit`}>Editar</Link>
                 </Button>
-                <Button size="sm" asChild className="flex-1 bg-indigo-600 hover:bg-indigo-700">
+                <Button size="sm" asChild className="flex-1 bg-black hover:bg-gray-800">
                   <Link href={`/forms/${form.id}`}>Detalhes</Link>
                 </Button>
               </div>

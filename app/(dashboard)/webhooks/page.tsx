@@ -44,7 +44,7 @@ export default async function WebhooksPage() {
           <h1 className="text-2xl font-bold text-gray-900">Webhooks</h1>
           <p className="text-muted-foreground">Roteie leads para sistemas externos</p>
         </div>
-        <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+        <Button asChild className="bg-black hover:bg-gray-800">
           <Link href="/webhooks/new">
             <Plus className="mr-2 h-4 w-4" />
             Novo destino

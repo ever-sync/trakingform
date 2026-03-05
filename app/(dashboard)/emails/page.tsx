@@ -70,7 +70,7 @@ export default async function EmailsPage() {
           <Button variant="outline" asChild>
             <Link href="/workspace/email">Configurar envio</Link>
           </Button>
-          <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+          <Button asChild className="bg-black hover:bg-gray-800">
             <Link href="/emails/new">
               <Plus className="mr-2 h-4 w-4" />
               Novo template
@@ -88,14 +88,14 @@ export default async function EmailsPage() {
         {serialized.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50">
-                <Mail className="h-6 w-6 text-indigo-600" />
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                <Mail className="h-6 w-6 text-black" />
               </div>
               <h3 className="mb-1 font-semibold text-gray-900">Nenhum template criado</h3>
               <p className="mb-4 max-w-sm text-center text-sm text-muted-foreground">
                 Crie templates de e-mail para nutrir seus leads automaticamente.
               </p>
-              <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+              <Button asChild className="bg-black hover:bg-gray-800">
                 <Link href="/emails/new">
                   <Plus className="mr-2 h-4 w-4" />
                   Criar template

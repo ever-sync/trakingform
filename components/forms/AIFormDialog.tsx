@@ -73,7 +73,7 @@ export function AIFormDialog({ onFieldsGenerated }: AIFormDialogProps) {
 
         <div className="space-y-4">
           <textarea
-            className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
             rows={3}
             placeholder="Ex: Formulario de captacao de leads para uma imobiliaria de alto padrao em Sao Paulo. Preciso coletar informacoes sobre o imovel desejado..."
             value={description}
@@ -83,7 +83,7 @@ export function AIFormDialog({ onFieldsGenerated }: AIFormDialogProps) {
           <Button
             onClick={handleGenerate}
             disabled={loading || !description.trim()}
-            className="w-full bg-indigo-600 hover:bg-indigo-700"
+            className="w-full bg-black hover:bg-gray-800"
           >
             {loading ? (
               <>

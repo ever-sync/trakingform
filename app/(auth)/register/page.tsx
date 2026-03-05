@@ -46,7 +46,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
               <span className="text-white font-bold text-sm">L</span>
             </div>
             <span className="text-xl font-bold text-gray-900">TrackingForm</span>
@@ -109,7 +109,7 @@ export default function RegisterPage() {
               </Button>
               <p className="text-sm text-center text-muted-foreground">
                 Já tem conta?{' '}
-                <Link href="/login" className="text-indigo-600 hover:underline font-medium">
+                <Link href="/login" className="text-black hover:underline font-medium">
                   Entrar
                 </Link>
               </p>

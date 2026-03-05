@@ -157,7 +157,7 @@ export default async function FormDetailPage({
         </div>
         <div className="flex gap-2">
           <QRCodeDialog formId={formId} formName={form.name} appUrl={appUrl} />
-          <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+          <Button asChild className="bg-black hover:bg-gray-800">
             <Link href={`/forms/${formId}/edit`}>
               <Edit className="h-4 w-4 mr-2" />
               Editar formulário

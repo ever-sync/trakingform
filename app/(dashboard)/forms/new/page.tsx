@@ -149,7 +149,7 @@ export default function NewFormPage() {
               <Button variant="outline" asChild>
                 <Link href="/forms">Cancelar</Link>
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
+              <Button type="submit" className="bg-black hover:bg-gray-800" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
