@@ -257,13 +257,33 @@ export default async function ChatEmbedPage({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(answers),
             });
-            var json = await res.json();
+            var raw = '';
+            var json = null;
+            try {
+              raw = await res.text();
+              json = raw ? JSON.parse(raw) : null;
+            } catch (e) {
+              json = null;
+            }
             hideTyping();
 
-            if (json.redirect_url) {
+            if (json && json.errors) {
+              addMessage('Algumas respostas estao invalidas. Por favor, tente novamente.', 'bot');
+              return;
+            }
+
+            if (!res.ok) {
+              var msg = (json && (json.error || json.message))
+                ? (json.error || json.message)
+                : (raw && raw.trim().length > 0 ? raw : 'Erro ao enviar. Tente novamente.');
+              addMessage(msg, 'bot');
+              return;
+            }
+
+            if (json && json.redirect_url) {
               window.top.location.href = json.redirect_url;
             } else {
-              addMessage(json.message || 'Obrigado! Recebemos suas informacoes.', 'bot');
+              addMessage((json && json.message) || 'Obrigado! Recebemos suas informacoes.', 'bot');
               inputArea.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:13px;width:100%;">Conversa finalizada</p>';
             }
           } catch(err) {

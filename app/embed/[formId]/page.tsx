@@ -826,19 +826,13 @@ export default async function EmbedFormPage({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
               });
+              var raw = '';
               var json = null;
               try {
-                json = await res.json();
+                raw = await res.text();
+                json = raw ? JSON.parse(raw) : null;
               } catch (e) {
                 json = null;
-              }
-
-              if (!res.ok) {
-                btn.disabled = false;
-                btn.textContent = 'Enviar';
-                var msg = (json && (json.error || json.message)) ? (json.error || json.message) : 'Erro ao enviar. Tente novamente.';
-                alert(msg);
-                return;
               }
 
               if (json && json.errors) {
@@ -855,6 +849,16 @@ export default async function EmbedFormPage({
                     err.textContent = msg;
                   }
                 });
+                return;
+              }
+
+              if (!res.ok) {
+                btn.disabled = false;
+                btn.textContent = 'Enviar';
+                var msg = (json && (json.error || json.message))
+                  ? (json.error || json.message)
+                  : (raw && raw.trim().length > 0 ? raw : 'Erro ao enviar. Tente novamente.');
+                alert(msg);
                 return;
               }
 
