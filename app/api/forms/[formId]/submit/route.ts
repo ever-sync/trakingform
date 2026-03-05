@@ -16,6 +16,20 @@ import { buildAttributionSnapshot, recordLeadEvent } from '@/lib/services/lead-e
 import { enqueueEmailDispatch, processPendingEmailDispatches } from '@/lib/services/email/dispatcher'
 import { FormField } from '@/types'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+function jsonWithCors(data: unknown, init?: { status?: number }) {
+  const res = NextResponse.json(data, init)
+  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+    res.headers.set(key, value)
+  })
+  return res
+}
+
 function getActiveFields(fields: unknown, settings: unknown): FormField[] {
   const draftFields = Array.isArray(fields) ? (fields as FormField[]) : []
 
@@ -105,7 +119,7 @@ export async function POST(
   if (limiter) {
     const { success } = await limiter.limit(`form:${formId}:${ip}`)
     if (!success) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+      return jsonWithCors({ error: 'Too many requests' }, { status: 429 })
     }
   }
 
@@ -115,14 +129,14 @@ export async function POST(
   })
 
   if (!form || !form.is_active) {
-    return NextResponse.json({ error: 'Form not found' }, { status: 404 })
+    return jsonWithCors({ error: 'Form not found' }, { status: 404 })
   }
 
   const body = (await req.json()) as Record<string, unknown>
 
   // Honeypot check â€” silent reject bots
   if (body._hp) {
-    return NextResponse.json({ success: true, message: form.submit_message })
+    return jsonWithCors({ success: true, message: form.submit_message })
   }
 
   const fields = getActiveFields(form.fields, form.settings)
@@ -133,7 +147,7 @@ export async function POST(
   const errors = validateFormSubmission(fields, body)
 
   if (Object.keys(errors).length > 0) {
-    return NextResponse.json({ errors }, { status: 422 })
+    return jsonWithCors({ errors }, { status: 422 })
   }
 
   const userAgent = req.headers.get('user-agent') ?? ''
@@ -535,7 +549,7 @@ export async function POST(
     recordVariantSubmission(variantId).catch(console.error)
   }
 
-  return NextResponse.json({
+  return jsonWithCors({
     success: true,
     message: form.submit_message,
     redirect_url: form.submit_redirect_url,
@@ -546,10 +560,6 @@ export async function POST(
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: CORS_HEADERS,
   })
 }

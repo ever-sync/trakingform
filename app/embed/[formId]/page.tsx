@@ -826,9 +826,22 @@ export default async function EmbedFormPage({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
               });
-              var json = await res.json();
+              var json = null;
+              try {
+                json = await res.json();
+              } catch (e) {
+                json = null;
+              }
 
-              if (json.errors) {
+              if (!res.ok) {
+                btn.disabled = false;
+                btn.textContent = 'Enviar';
+                var msg = (json && (json.error || json.message)) ? (json.error || json.message) : 'Erro ao enviar. Tente novamente.';
+                alert(msg);
+                return;
+              }
+
+              if (json && json.errors) {
                 btn.disabled = false;
                 btn.textContent = 'Enviar';
                 Object.entries(json.errors).forEach(function(entry) {
@@ -845,11 +858,11 @@ export default async function EmbedFormPage({
                 return;
               }
 
-              if (json.redirect_url) {
+              if (json && json.redirect_url) {
                 window.top.location.href = json.redirect_url;
               } else {
                 document.getElementById('form-container').innerHTML =
-                  '<div class="success-msg"><h2>Enviado!</h2><p>' + (json.message || 'Obrigado!') + '</p></div>';
+                  '<div class="success-msg"><h2>Enviado!</h2><p>' + ((json && json.message) || 'Obrigado!') + '</p></div>';
               }
             } catch(err) {
               btn.disabled = false;

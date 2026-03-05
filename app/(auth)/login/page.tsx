@@ -38,10 +38,11 @@ export default function LoginPage() {
 
   return (
     <div className="w-full min-h-screen grid grid-cols-1 lg:grid-cols-2 relative overflow-hidden bg-white">
-      {/* Decorative Blur Backgrounds */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-cyan-300/30 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-in fade-in duration-1000" />
-      <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-pink-300/30 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-in fade-in duration-1000 delay-300" />
-      <div className="absolute top-[20%] right-[30%] w-[500px] h-[500px] bg-purple-300/30 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-in fade-in duration-1000 delay-500" />
+      {/* Decorative Blur Backgrounds - More Vibrant */}
+      <div className="absolute top-[-10%] left-[-5%] w-[700px] h-[700px] bg-cyan-400/30 rounded-full mix-blend-multiply filter blur-[120px] opacity-80 animate-in fade-in duration-1000" />
+      <div className="absolute bottom-[-5%] left-[15%] w-[800px] h-[800px] bg-pink-400/30 rounded-full mix-blend-multiply filter blur-[140px] opacity-80 animate-in fade-in duration-1000 delay-300" />
+      <div className="absolute top-[15%] right-[25%] w-[600px] h-[600px] bg-purple-400/30 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-in fade-in duration-1000 delay-500" />
+      <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[1000px] h-[1000px] bg-indigo-200/20 rounded-full mix-blend-multiply filter blur-[180px] opacity-40 pointer-events-none" />
 
       {/* Left Column: Form */}
       <div className="flex items-center justify-center p-8 z-10 relative h-full w-full">
@@ -127,14 +128,21 @@ export default function LoginPage() {
 
       {/* Right Column: Hero Visuals */}
       <div className="hidden lg:flex flex-col items-center justify-center p-6 lg:p-12 z-10 relative">
-        <div className="w-full h-full max-h-[850px] border border-white/40 bg-white/20 backdrop-blur-2xl rounded-[48px] shadow-[0_0_80px_rgb(0,0,0,0.05)] flex items-center justify-center relative overflow-hidden">
-          <div className="w-[120%] h-[120%] absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none"></div>
+        <div className="w-full h-full max-h-[850px] border border-white/60 bg-white/25 backdrop-blur-3xl rounded-[48px] shadow-[0_20px_100px_rgb(0,0,0,0.08)] flex items-center justify-center relative overflow-hidden group">
+          <div className="w-[120%] h-[120%] absolute inset-0 bg-gradient-to-tr from-white/30 via-transparent to-white/10 pointer-events-none"></div>
+          
+          {/* Subtle glowing orbs behind astronaut */}
+          <div className="absolute w-[300px] h-[300px] bg-purple-400/20 blur-[80px] rounded-full animate-pulse top-1/4 left-1/4" />
+          <div className="absolute w-[250px] h-[250px] bg-cyan-400/20 blur-[70px] rounded-full animate-pulse bottom-1/4 right-1/4 delay-700" />
+
           {/* Astronaut floating */}
-          <div className="w-[500px] h-[500px] relative animate-float z-20 pointer-events-none">
-            <img 
+          <div className="w-[450px] h-[450px] relative animate-float z-20 pointer-events-none drop-shadow-[0_25px_60px_rgba(0,0,0,0.25)]">
+            <Image 
               src="/api/astronaut"
               alt="Floating Astronaut"
-              className="w-full h-full object-cover rounded-[40px] drop-shadow-2xl filter saturate-[1.1] contrast-[1.05]"
+              fill
+              unoptimized
+              className="object-contain filter saturate-[1.1] contrast-[1.05] drop-shadow-2xl"
             />
           </div>
         </div>
