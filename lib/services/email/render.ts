@@ -1,4 +1,4 @@
-import DOMPurify from 'isomorphic-dompurify'
+import sanitizeHtml from 'sanitize-html'
 
 import { EmailBlock } from '@/types'
 
@@ -6,7 +6,10 @@ const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'u', 'sp
 const ALLOWED_ATTR = ['href', 'target', 'rel', 'style', 'class']
 
 function sanitize(html: string): string {
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR })
+  return sanitizeHtml(html, {
+    allowedTags: ALLOWED_TAGS,
+    allowedAttributes: { '*': ALLOWED_ATTR },
+  })
 }
 
 export function replaceTemplateVariables(text: string, variables: Record<string, string>): string {
