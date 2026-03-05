@@ -111,6 +111,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
+ try {
   const { formId } = await params
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
 
@@ -554,6 +555,11 @@ export async function POST(
     message: form.submit_message,
     redirect_url: form.submit_redirect_url,
   })
+ } catch (err: unknown) {
+    console.error('[submit] Unhandled error:', err instanceof Error ? err.stack : err)
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return jsonWithCors({ error: message }, { status: 500 })
+  }
 }
 
 // CORS preflight for embeds
