@@ -866,13 +866,13 @@ export default async function EmbedFormPage({
                 window.top.location.href = json.redirect_url;
               } else {
                 document.getElementById('form-container').innerHTML =
-                  '<div class="success-msg"><h2>Enviado!</h2><p>' + ((json && json.message) || 'Obrigado!') + '</p></div>';
+                  '<div class="success-msg"><h2>Enviado com sucesso</h2><p>' + ((json && json.message) || 'Obrigado!') + '</p></div>';
               }
             } catch(err) {
               btn.disabled = false;
               btn.textContent = 'Enviar';
               console.error('[TrackingForm] Submit error:', err);
-              alert('Erro ao enviar: ' + (err && err.message ? err.message : String(err)));
+              alert('Não foi possível enviar. Verifique sua conexão e tente novamente.');
             }
           });
         ` }} />

@@ -45,6 +45,17 @@ export const STRIPE_PRICE_IDS: Record<Plan, string> = {
   agency: process.env.STRIPE_PRICE_AGENCY!,
 }
 
+/** Resolve o plano local a partir do Price ID configurado nas envs */
+export function planFromStripePriceId(priceId: string | undefined | null): Plan | null {
+  if (!priceId) return null
+  const keys: Plan[] = ['starter', 'pro', 'agency']
+  for (const plan of keys) {
+    const id = STRIPE_PRICE_IDS[plan]
+    if (id && id === priceId) return plan
+  }
+  return null
+}
+
 export const PLAN_PRICES_BRL: Record<Plan, number> = {
   starter: 97,
   pro: 247,

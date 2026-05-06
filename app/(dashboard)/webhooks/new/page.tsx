@@ -79,7 +79,7 @@ export default function NewWebhookPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {template ? `Configurar ${template.name}` : 'Configuracao'}
+            {template ? `Configurar ${template.name}` : 'Configuração'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -92,7 +92,7 @@ export default function NewWebhookPage() {
           <div className="space-y-2">
             <Label>Nome do destino</Label>
             <Input
-              placeholder="Ex: n8n - Notificacao WhatsApp"
+              placeholder="Ex: n8n — Notificação WhatsApp"
               value={name}
               onChange={e => setName(e.target.value)}
             />

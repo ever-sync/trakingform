@@ -2,12 +2,27 @@
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { formSessionDrafts, forms } from '@/lib/db/schema'
+import { isFormOriginAllowed } from '@/lib/security/form-origin'
+import { getFormPublicRatelimit } from '@/lib/services/form-public-ratelimit'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   const { formId } = await params
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+
+  const limiter = getFormPublicRatelimit()
+  if (limiter) {
+    const { success } = await limiter.limit(`form-draft:${formId}:${ip}`)
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Muitas tentativas. Aguarde um minuto e tente novamente.' },
+        { status: 429 },
+      )
+    }
+  }
+
   const body = (await req.json()) as {
     fingerprint?: string
     email?: string
@@ -18,11 +33,19 @@ export async function POST(
 
   const form = await db.query.forms.findFirst({
     where: eq(forms.id, formId),
-    columns: { id: true, workspace_id: true },
+    columns: { id: true, workspace_id: true, allowed_domains: true, is_active: true },
   })
 
-  if (!form || !form.workspace_id) {
-    return NextResponse.json({ error: 'Form not found' }, { status: 404 })
+  if (!form || !form.workspace_id || !form.is_active) {
+    return NextResponse.json({ error: 'Formulário não encontrado ou indisponível.' }, { status: 404 })
+  }
+
+  const allowed = form.allowed_domains as string[] | null | undefined
+  if (!isFormOriginAllowed(req, allowed)) {
+    return NextResponse.json(
+      { error: 'Este site não está autorizado a usar este formulário.' },
+      { status: 403 },
+    )
   }
 
   const fingerprint = typeof body.fingerprint === 'string' ? body.fingerprint : null
@@ -84,10 +107,40 @@ export async function PATCH(
   { params }: { params: Promise<{ formId: string }> }
 ) {
   const { formId } = await params
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+
+  const limiter = getFormPublicRatelimit()
+  if (limiter) {
+    const { success } = await limiter.limit(`form-draft:${formId}:${ip}`)
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Muitas tentativas. Aguarde um minuto e tente novamente.' },
+        { status: 429 },
+      )
+    }
+  }
+
+  const form = await db.query.forms.findFirst({
+    where: eq(forms.id, formId),
+    columns: { id: true, allowed_domains: true, is_active: true },
+  })
+
+  if (!form || !form.is_active) {
+    return NextResponse.json({ error: 'Formulário não encontrado ou indisponível.' }, { status: 404 })
+  }
+
+  const allowed = form.allowed_domains as string[] | null | undefined
+  if (!isFormOriginAllowed(req, allowed)) {
+    return NextResponse.json(
+      { error: 'Este site não está autorizado a usar este formulário.' },
+      { status: 403 },
+    )
+  }
+
   const body = (await req.json()) as { draftId?: string }
 
   if (!body.draftId) {
-    return NextResponse.json({ error: 'draftId is required' }, { status: 422 })
+    return NextResponse.json({ error: 'Identificador do rascunho é obrigatório.' }, { status: 422 })
   }
 
   const [draft] = await db
@@ -103,7 +156,7 @@ export async function PATCH(
       progress_step: formSessionDrafts.progress_step,
     })
 
-  if (!draft) return NextResponse.json({ error: 'Draft not found' }, { status: 404 })
+  if (!draft) return NextResponse.json({ error: 'Rascunho não encontrado.' }, { status: 404 })
   return NextResponse.json({ draft })
 }
 

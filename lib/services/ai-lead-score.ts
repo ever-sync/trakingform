@@ -57,7 +57,11 @@ export function calculateEnhancedLeadScore(input: EnhancedScoringInput): Scoring
     factors.push({ name: 'Preenchimento lento', impact: 4, description: `Preencheu em ${t}s - pode indicar hesitacao` })
   } else if (t > 0) {
     score += 2
-    factors.push({ name: 'Tempo atipico', impact: 2, description: `Tempo de ${t}s fora do padrao` })
+    factors.push({
+      name: 'Tempo atípico',
+      impact: 2,
+      description: `Tempo de ${t}s fora do padrão`,
+    })
   }
 
   // Device type
@@ -101,10 +105,18 @@ export function calculateEnhancedLeadScore(input: EnhancedScoringInput): Scoring
   if (input.targetCountries && input.countryCode) {
     if (input.targetCountries.includes(input.countryCode)) {
       score += 15
-      factors.push({ name: 'Pais-alvo', impact: 15, description: `Pais ${input.countryCode} esta na lista de alvos` })
+      factors.push({
+        name: 'País-alvo',
+        impact: 15,
+        description: `País ${input.countryCode} está na lista de alvos`,
+      })
     } else {
       score -= 10
-      factors.push({ name: 'Fora do pais-alvo', impact: -10, description: `Pais ${input.countryCode} nao e alvo` })
+      factors.push({
+        name: 'Fora do país-alvo',
+        impact: -10,
+        description: `País ${input.countryCode} não é alvo`,
+      })
     }
   }
 

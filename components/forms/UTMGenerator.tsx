@@ -125,7 +125,7 @@ export function UTMGenerator({ appUrl, formId, formName }: UTMGeneratorProps) {
 
   async function handleCopyUrl() {
     if (!generatedUrl) {
-      toast.error('URL invalida. Ajuste o link base.')
+      toast.error('URL inválida. Ajuste o link base.')
       return
     }
 
@@ -278,7 +278,7 @@ export function UTMGenerator({ appUrl, formId, formName }: UTMGeneratorProps) {
             </div>
           </div>
 
-          <pre className="overflow-x-auto rounded bg-gray-900 p-3 text-xs text-green-400">{generatedUrl || 'URL invalida'}</pre>
+          <pre className="overflow-x-auto rounded bg-gray-900 p-3 text-xs text-green-400">{generatedUrl || 'URL inválida'}</pre>
 
           {missingRequired.length > 0 ? (
             <div className="flex flex-wrap gap-2">

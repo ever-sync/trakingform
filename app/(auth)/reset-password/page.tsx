@@ -30,7 +30,7 @@ export default function ResetPasswordPage() {
       return
     }
     if (password !== confirm) {
-      toast.error('As senhas nao coincidem.')
+      toast.error('As senhas não coincidem.')
       return
     }
     setLoading(true)
@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
       setLoading(false)
       return
     }
-    toast.success('Senha atualizada. Voce sera redirecionado para o login.')
+    toast.success('Senha atualizada. Você será redirecionado para o login.')
     setRedirecting(true)
     setTimeout(() => {
       router.push('/login')

@@ -253,7 +253,7 @@ export function WebhooksManagerClient({ initialDestinations }: WebhooksManagerCl
                         <AlertDialogHeader>
                           <AlertDialogTitle>Apagar webhook?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Essa acao nao pode ser desfeita.
+                            Essa ação não pode ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -345,7 +345,7 @@ export function WebhooksManagerClient({ initialDestinations }: WebhooksManagerCl
               <div className="flex items-center justify-between rounded-md border border-gray-200 p-3">
                 <div>
                   <p className="text-sm font-medium">Webhook ativo</p>
-                  <p className="text-xs text-muted-foreground">Se desativado, nao dispara no envio de lead.</p>
+                  <p className="text-xs text-muted-foreground">Se desativado, não dispara no envio do lead.</p>
                 </div>
                 <Switch
                   checked={!!editing.is_active}

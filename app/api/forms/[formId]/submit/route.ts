@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
 import { db } from '@/lib/db'
-import { emailTemplates, forms, leads, leadConsents, leadEvents, formSessionDrafts, opsAlerts } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe-url'
+import { isFormOriginAllowed } from '@/lib/security/form-origin'
+import { getFormPublicRatelimit } from '@/lib/services/form-public-ratelimit'
+import {
+  emailTemplates,
+  formSessionDrafts,
+  forms,
+  leadConsents,
+  leadEvents,
+  leads,
+  opsAlerts,
+  workspaces,
+} from '@/lib/db/schema'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import { enrichLeadWithIP } from '@/lib/services/ip-enrichment'
 import { detectDuplicate } from '@/lib/services/duplicate-detector'
 import { dispatchWebhooksForLead } from '@/lib/services/webhook-dispatcher'
@@ -14,7 +24,8 @@ import { validateFormSubmission } from '@/lib/services/form-validator'
 import { assignLeadByRoutingRules } from '@/lib/services/routing/engine'
 import { buildAttributionSnapshot, recordLeadEvent } from '@/lib/services/lead-events'
 import { enqueueEmailDispatch, processPendingEmailDispatches } from '@/lib/services/email/dispatcher'
-import { FormField } from '@/types'
+import { PLANS } from '@/lib/stripe/plans'
+import { FormField, Plan } from '@/types'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -87,24 +98,6 @@ function extractLeadDataEmail(
   return undefined
 }
 
-let ratelimit: Ratelimit | null = null
-
-function getRateLimit() {
-  if (ratelimit) return ratelimit
-
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
-
-  if (!redisUrl || !redisToken) return null
-
-  ratelimit = new Ratelimit({
-    redis: Redis.fromEnv(),
-    limiter: Ratelimit.slidingWindow(10, '1 m'),
-  })
-
-  return ratelimit
-}
-
 const INTERNAL_FIELDS = ['_hp', '_fp', '_start_time', '_utm_source', '_utm_medium', '_utm_campaign', '_utm_term', '_utm_content', '_referrer', '_variant_id', '_progressive', '_draft_id']
 
 export async function POST(
@@ -116,11 +109,14 @@ export async function POST(
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
 
   // Rate limit per form + IP
-  const limiter = getRateLimit()
+  const limiter = getFormPublicRatelimit()
   if (limiter) {
     const { success } = await limiter.limit(`form:${formId}:${ip}`)
     if (!success) {
-      return jsonWithCors({ error: 'Too many requests' }, { status: 429 })
+      return jsonWithCors(
+        { error: 'Muitas tentativas. Aguarde um minuto e tente novamente.' },
+        { status: 429 },
+      )
     }
   }
 
@@ -130,12 +126,17 @@ export async function POST(
   })
 
   if (!form || !form.is_active) {
-    return jsonWithCors({ error: 'Form not found' }, { status: 404 })
+    return jsonWithCors({ error: 'Formulário não encontrado ou indisponível.' }, { status: 404 })
+  }
+
+  const allowed = form.allowed_domains as string[] | null | undefined
+  if (!isFormOriginAllowed(req, allowed)) {
+    return jsonWithCors({ error: 'Este site não está autorizado a enviar este formulário.' }, { status: 403 })
   }
 
   const body = (await req.json()) as Record<string, unknown>
 
-  // Honeypot check â€” silent reject bots
+  // Honeypot — rejeição silenciosa de bots
   if (body._hp) {
     return jsonWithCors({ success: true, message: form.submit_message })
   }
@@ -219,27 +220,60 @@ export async function POST(
   })
   const leadScore = scoringResult.score
 
-  // Progressive Profiling: check if lead already exists for this form (by email)
   const isProgressive = typeof body._progressive === 'string' && body._progressive === '1'
-  let lead: typeof leads.$inferSelect
+  let existingProgressiveLead: typeof leads.$inferSelect | null = null
 
   if (isProgressive && email) {
-    // Find existing lead with matching email in this form
-    const existingLeads = await db
+    const existingLeadRows = await db
       .select()
       .from(leads)
-      .where(and(eq(leads.form_id, formId)))
+      .where(eq(leads.form_id, formId))
       .orderBy(desc(leads.created_at))
       .limit(50)
 
     const currentEmail = email.toLowerCase().trim()
-    const existingLead = existingLeads.find((leadRow) => {
-      const data = leadRow.data as Record<string, unknown> | null
-      const leadEmail = extractLeadDataEmail(fields, data)
-      return !!leadEmail && leadEmail === currentEmail
-    })
+    existingProgressiveLead =
+      existingLeadRows.find((leadRow) => {
+        const data = leadRow.data as Record<string, unknown> | null
+        const leadEmail = extractLeadDataEmail(fields, data)
+        return !!leadEmail && leadEmail === currentEmail
+      }) ?? null
+  }
 
-    if (existingLead) {
+  const consumesLeadQuota = !(isProgressive && email && existingProgressiveLead)
+
+  if (consumesLeadQuota && form.workspace_id) {
+    const [wsQuota] = await db
+      .select({
+        plan: workspaces.plan,
+        leads_used_this_month: workspaces.leads_used_this_month,
+      })
+      .from(workspaces)
+      .where(eq(workspaces.id, form.workspace_id))
+      .limit(1)
+
+    const planKey = (wsQuota?.plan ?? 'starter') as Plan
+    const cap = PLANS[planKey].maxLeadsPerMonth
+    if (Number.isFinite(cap)) {
+      const used = wsQuota?.leads_used_this_month ?? 0
+      if (used >= cap) {
+        return jsonWithCors(
+          {
+            error:
+              'Limite mensal de leads do seu plano foi atingido. Faça upgrade em Configurações → Cobrança.',
+          },
+          { status: 402 },
+        )
+      }
+    }
+  }
+
+  let lead: typeof leads.$inferSelect
+  let createdNewLead = false
+
+  if (isProgressive && email) {
+    if (existingProgressiveLead) {
+      const existingLead = existingProgressiveLead
       // Merge new data with existing data
       const existingData = (existingLead.data as Record<string, unknown>) ?? {}
       const mergedData = { ...existingData, ...trackedData }
@@ -273,11 +307,12 @@ export async function POST(
       await db.insert(leadEvents).values({
         lead_id: lead.id,
         type: 'profile_updated',
-        description: `Lead atualizado via progressive profiling`,
+        description: 'Lead atualizado via progressive profiling',
         metadata: { new_fields: Object.keys(cleanData) },
       })
     } else {
       // No existing lead found, create new one
+      createdNewLead = true
       const [newLead] = await db.insert(leads).values({
         workspace_id: form.workspace_id,
         form_id: formId,
@@ -303,18 +338,19 @@ export async function POST(
       await db.insert(leadEvents).values({
         lead_id: lead.id,
         type: 'created',
-        description: `Lead capturado via formulÃ¡rio "${form.name}"`,
+        description: `Lead capturado via formulário "${form.name}"`,
         metadata: utmSource ? { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign } : undefined,
       })
       await recordLeadEvent({
         leadId: lead.id,
         type: 'lead_created',
-        description: `Lead capturado via formulario "${form.name}"`,
+        description: `Lead capturado via formulário "${form.name}"`,
         metadata: attributionSnapshot,
       })
     }
   } else {
-    // Normal flow: always create new lead
+    // Fluxo normal (ou progressive sem e-mail identificável): sempre novo lead
+    createdNewLead = true
     const [newLead] = await db.insert(leads).values({
       workspace_id: form.workspace_id,
       form_id: formId,
@@ -341,13 +377,13 @@ export async function POST(
     await db.insert(leadEvents).values({
       lead_id: lead.id,
       type: 'created',
-      description: `Lead capturado via formulÃ¡rio "${form.name}"`,
+      description: `Lead capturado via formulário "${form.name}"`,
       metadata: utmSource ? { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign } : undefined,
     })
     await recordLeadEvent({
       leadId: lead.id,
       type: 'lead_created',
-      description: `Lead capturado via formulario "${form.name}"`,
+      description: `Lead capturado via formulário "${form.name}"`,
       metadata: attributionSnapshot,
     })
   }
@@ -361,6 +397,16 @@ export async function POST(
       factors: scoringResult.factors,
     },
   })
+
+  if (createdNewLead && form.workspace_id) {
+    db.update(workspaces)
+      .set({
+        leads_used_this_month: sql`COALESCE(${workspaces.leads_used_this_month}, 0) + 1`,
+        updated_at: new Date(),
+      })
+      .where(eq(workspaces.id, form.workspace_id))
+      .catch(console.error)
+  }
 
   const webhookPayload: Record<string, unknown> = {
     ...cleanData,
@@ -414,9 +460,9 @@ export async function POST(
     answers: cleanData,
   }
 
-  // Update form submission count (fire and forget)
+  // Contagem atômica (evita race em concorrência)
   db.update(forms)
-    .set({ total_submissions: (form.total_submissions ?? 0) + 1 })
+    .set({ total_submissions: sql`COALESCE(${forms.total_submissions}, 0) + 1` })
     .where(eq(forms.id, formId))
     .catch(console.error)
 
@@ -479,7 +525,7 @@ export async function POST(
         workspace_id: form.workspace_id!,
         source: 'email_dispatch',
         severity: 'warning',
-        title: 'Template de e-mail nao encontrado',
+        title: 'Template de e-mail não encontrado',
         message: `Form ${form.id} referencia um template inexistente.`,
         payload: { form_id: form.id, email_template_id: form.email_template_id },
       }).catch(console.error)
@@ -487,6 +533,9 @@ export async function POST(
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const unsubscribeAbsolute = email
+    ? buildUnsubscribeUrl(appUrl, form.workspace_id!, email)
+    : null
   const emailDispatchPromise = email
     ? enqueueEmailDispatch({
         workspaceId: form.workspace_id!,
@@ -498,7 +547,7 @@ export async function POST(
           {
             id: 'lead_received_message',
             type: 'text',
-            content: `${form.submit_message ?? 'Recebemos suas informacoes. Em breve entraremos em contato.'}\n\nLead: {{name}}\nEmail: {{email}}`,
+            content: `${form.submit_message ?? 'Recebemos suas informações. Em breve entraremos em contato.'}\n\nLead: {{name}}\nEmail: {{email}}`,
           },
         ],
         variables: Object.entries(cleanData as Record<string, unknown>).reduce<Record<string, string>>((acc, [key, value]) => {
@@ -512,7 +561,7 @@ export async function POST(
           submit_message: form.submit_message ?? '',
           utm_source: utmSource ?? '',
           created_at: new Date().toISOString(),
-          unsubscribe_url: `${appUrl}/api/email/unsubscribe?workspace=${form.workspace_id}&email=${encodeURIComponent(email)}`,
+          unsubscribe_url: unsubscribeAbsolute ?? '',
           ...(selectedTemplate?.from_name ? { from_name: selectedTemplate.from_name } : {}),
           ...(selectedTemplate?.from_email ? { from_email: selectedTemplate.from_email } : {}),
           ...(selectedTemplate?.reply_to ? { reply_to: selectedTemplate.reply_to } : {}),
@@ -557,8 +606,10 @@ export async function POST(
   })
  } catch (err: unknown) {
     console.error('[submit] Unhandled error:', err instanceof Error ? err.stack : err)
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return jsonWithCors({ error: message }, { status: 500 })
+    return jsonWithCors(
+      { error: 'Não foi possível enviar no momento. Tente novamente em instantes.' },
+      { status: 500 },
+    )
   }
 }
 

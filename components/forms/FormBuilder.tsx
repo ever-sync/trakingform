@@ -211,7 +211,7 @@ function FormPreview({
         }}
       >
         <h3 className="mb-1 text-base font-semibold">Preview do formulario</h3>
-        <p className="mb-4 text-xs opacity-70">Visualizacao local do rascunho atual.</p>
+        <p className="mb-4 text-xs opacity-70">Visualização local do rascunho atual.</p>
 
         <div className="mb-4 grid grid-cols-1 gap-2 rounded-lg border border-gray-200 p-3 text-xs">
           <div>
@@ -315,7 +315,9 @@ export function FormBuilder({
   const [settingsTab, setSettingsTab] = useState<'general' | 'ab' | 'webhooks'>('general')
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop')
   const [submitRedirectUrl, setSubmitRedirectUrl] = useState(initialSubmitRedirectUrl ?? '')
-  const [submitMessage, setSubmitMessage] = useState(initialSubmitMessage ?? 'Obrigado! Recebemos suas informacoes.')
+  const [submitMessage, setSubmitMessage] = useState(
+    initialSubmitMessage ?? 'Obrigado! Recebemos suas informações.'
+  )
   const [theme, setTheme] = useState<BuilderThemeState>(() => parseTheme(initialTheme))
   const [emailTemplateId, setEmailTemplateId] = useState<string>(initialEmailTemplateId ?? '')
   const [emailTemplates, setEmailTemplates] = useState<Array<{ id: string; name: string }>>([])
@@ -536,7 +538,7 @@ export function FormBuilder({
       required: false,
       placeholder: DEFAULT_PLACEHOLDERS[type] ?? '',
       options: ['select', 'radio', 'checkbox'].includes(type)
-        ? [{ label: 'Opcao 1', value: 'opcao_1' }]
+        ? [{ label: 'Opção 1', value: 'opcao_1' }]
         : undefined,
     }
 
@@ -621,7 +623,7 @@ export function FormBuilder({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-gray-600">Construtor</span>
 
-            {dirty ? <Badge variant="secondary" className="h-5 text-[11px]">Rascunho nao salvo</Badge> : null}
+            {dirty ? <Badge variant="secondary" className="h-5 text-[11px]">Rascunho não salvo</Badge> : null}
             {saveStatus === 'saving' ? <Badge variant="secondary" className="h-5 text-[11px]">Salvando...</Badge> : null}
             {saveStatus === 'saved' && !dirty ? <Badge variant="secondary" className="h-5 text-[11px]">Salvo</Badge> : null}
             {saveStatus === 'error' ? <Badge variant="destructive" className="h-5 text-[11px]">Falha ao salvar</Badge> : null}
@@ -701,7 +703,7 @@ export function FormBuilder({
                 <div className="space-y-1 md:col-span-2 xl:col-span-2">
                   <Label className="text-xs">Titulo do formulario</Label>
                   <Input
-                    placeholder="Ex: Captacao de leads"
+                    placeholder="Ex: Captação de leads"
                     value={formName}
                     onChange={(event) => {
                       setFormName(event.target.value)

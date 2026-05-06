@@ -75,7 +75,7 @@ export function AIFormDialog({ onFieldsGenerated }: AIFormDialogProps) {
           <textarea
             className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
             rows={3}
-            placeholder="Ex: Formulario de captacao de leads para uma imobiliaria de alto padrao em Sao Paulo. Preciso coletar informacoes sobre o imovel desejado..."
+            placeholder="Ex: Formulário de captação de leads para uma imobiliária de alto padrão em São Paulo. Preciso coletar informações sobre o imóvel desejado…"
             value={description}
             onChange={e => setDescription(e.target.value)}
           />

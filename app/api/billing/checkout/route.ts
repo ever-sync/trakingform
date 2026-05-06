@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
     metadata: { workspace_id: workspace.id },
+    client_reference_id: workspace.id,
   })
 
   return NextResponse.json({ url: session.url })

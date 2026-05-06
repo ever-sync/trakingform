@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
 import { forms } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, count } from 'drizzle-orm'
 import { getOrCreateWorkspace } from '@/lib/db/queries/workspace'
+import { PLANS } from '@/lib/stripe/plans'
+import { Plan } from '@/types'
 
 export async function GET() {
   const supabase = await createClient()
@@ -38,6 +40,24 @@ export async function POST(req: NextRequest) {
   }
 
   const workspace = await getOrCreateWorkspace(user.id, user.email!)
+
+  const planKey = (workspace.plan ?? 'starter') as Plan
+  const maxForms = PLANS[planKey].maxForms
+  if (Number.isFinite(maxForms)) {
+    const [{ formCount }] = await db
+      .select({ formCount: count() })
+      .from(forms)
+      .where(eq(forms.workspace_id, workspace.id))
+    const n = Number(formCount ?? 0)
+    if (n >= maxForms) {
+      return NextResponse.json(
+        {
+          error: `Seu plano permite no máximo ${maxForms} formulário(s). Faça upgrade para criar mais.`,
+        },
+        { status: 402 },
+      )
+    }
+  }
 
   const [form] = await db
     .insert(forms)

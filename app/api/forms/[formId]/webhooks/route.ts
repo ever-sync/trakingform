@@ -104,7 +104,7 @@ export async function PUT(
     const availableIds = new Set(availableRows.map((row) => row.id))
     const invalidIds = selectedDestinationIds.filter((id) => !availableIds.has(id))
     if (invalidIds.length > 0) {
-      return NextResponse.json({ error: 'Webhook invalido para este workspace.' }, { status: 400 })
+      return NextResponse.json({ error: 'Webhook inválido para este workspace.' }, { status: 400 })
     }
   }
 

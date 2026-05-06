@@ -55,7 +55,7 @@ type TemplateFormState = {
 
 const DEFAULT_BLOCKS: EmailBlock[] = [
   { id: 'header_1', type: 'header', backgroundColor: '#111827', logoUrl: '' },
-  { id: 'text_1', type: 'text', content: 'Ola {{name}}, obrigado pelo contato!' },
+  { id: 'text_1', type: 'text', content: 'Olá {{name}}, obrigado pelo contato!' },
   { id: 'button_1', type: 'button', label: 'Ver mais', url: 'https://', color: '#4f46e5' },
   { id: 'footer_1', type: 'footer', content: 'Equipe {{form_name}}', unsubscribeUrl: '{{unsubscribe_url}}' },
 ]
@@ -82,7 +82,11 @@ const PRESET_TEMPLATES: Array<{
     subject: 'Recebemos seu contato, {{name}}',
     blocks: [
       { id: 'header_1', type: 'header', backgroundColor: '#111827', logoUrl: '' },
-      { id: 'text_1', type: 'text', content: 'Ola {{name}}, recebemos sua solicitacao no formulario {{form_name}}.' },
+      {
+        id: 'text_1',
+        type: 'text',
+        content: 'Olá {{name}}, recebemos sua solicitação no formulário {{form_name}}.',
+      },
       { id: 'text_2', type: 'text', content: 'Mensagem enviada: {{submit_message}}' },
       { id: 'divider_1', type: 'divider' },
       { id: 'footer_1', type: 'footer', content: 'Obrigado por confiar em {{form_name}}.', unsubscribeUrl: '{{unsubscribe_url}}' },
@@ -94,7 +98,7 @@ const PRESET_TEMPLATES: Array<{
     subject: 'Bem-vindo(a), {{name}}',
     blocks: [
       { id: 'header_1', type: 'header', backgroundColor: '#0f172a', logoUrl: '' },
-      { id: 'text_1', type: 'text', content: 'Ola {{name}}, seja bem-vindo(a)! Em breve entraremos em contato.' },
+      { id: 'text_1', type: 'text', content: 'Olá {{name}}, seja bem-vindo(a)! Em breve entraremos em contato.' },
       { id: 'button_1', type: 'button', label: 'Visitar site', url: 'https://', color: '#4f46e5' },
       { id: 'footer_1', type: 'footer', content: 'Equipe {{form_name}}', unsubscribeUrl: '{{unsubscribe_url}}' },
     ],
@@ -105,7 +109,11 @@ const PRESET_TEMPLATES: Array<{
     subject: 'Podemos ajudar em algo mais, {{name}}?',
     blocks: [
       { id: 'header_1', type: 'header', backgroundColor: '#1f2937', logoUrl: '' },
-      { id: 'text_1', type: 'text', content: 'Ola {{name}}, estamos a disposicao para tirar duvidas.' },
+      {
+        id: 'text_1',
+        type: 'text',
+        content: 'Olá {{name}}, estamos à disposição para tirar dúvidas.',
+      },
       { id: 'button_1', type: 'button', label: 'Falar com a equipe', url: 'https://', color: '#10b981' },
       { id: 'footer_1', type: 'footer', content: 'Equipe {{form_name}}', unsubscribeUrl: '{{unsubscribe_url}}' },
     ],
@@ -145,7 +153,7 @@ function validateBlocks(blocks: EmailBlock[]) {
       if (!url) {
         errors.push(`${label}: URL do botao obrigatoria.`)
       } else if (!isValidUrl(url) && !url.includes('{{')) {
-        errors.push(`${label}: URL invalida.`)
+        errors.push(`${label}: URL inválida.`)
       }
     }
     if (block.type === 'image') {
@@ -153,7 +161,7 @@ function validateBlocks(blocks: EmailBlock[]) {
       if (!src) {
         errors.push(`${label}: URL da imagem obrigatoria.`)
       } else if (!isValidUrl(src) && !src.includes('{{')) {
-        errors.push(`${label}: URL da imagem invalida.`)
+        errors.push(`${label}: URL da imagem inválida.`)
       }
     }
   })
@@ -167,10 +175,10 @@ function getFormErrors(form: TemplateFormState) {
     errors.push('Assunto precisa ter pelo menos 5 caracteres.')
   }
   if (form.from_email.trim() && !isValidEmail(form.from_email.trim())) {
-    errors.push('De (email) invalido.')
+    errors.push('De (e-mail) inválido.')
   }
   if (form.reply_to.trim() && !isValidEmail(form.reply_to.trim())) {
-    errors.push('Reply-to invalido.')
+    errors.push('Reply-to inválido.')
   }
   return errors
 }
@@ -498,10 +506,10 @@ export function EmailTemplateBuilder({
                   setFormErrors([])
                   markDirty()
                 }}
-                placeholder="Ex: Ola {{name}}, obrigado!"
+                placeholder="Ex: Olá {{name}}, obrigado!"
                 required
               />
-              <p className="text-[11px] text-muted-foreground">Minimo de 5 caracteres.</p>
+              <p className="text-[11px] text-muted-foreground">Mínimo de 5 caracteres.</p>
               {form.subject.trim().length > 0 && form.subject.trim().length < 5 ? (
                 <p className="text-[11px] text-red-600">Assunto muito curto.</p>
               ) : null}
@@ -531,7 +539,7 @@ export function EmailTemplateBuilder({
                 placeholder="contato@empresa.com"
               />
               {form.from_email.trim() && !isValidEmail(form.from_email.trim()) ? (
-                <p className="text-[11px] text-red-600">Email invalido.</p>
+                <p className="text-[11px] text-red-600">E-mail inválido.</p>
               ) : null}
             </div>
             <div className="space-y-1">
@@ -547,7 +555,7 @@ export function EmailTemplateBuilder({
                 placeholder="respostas@empresa.com"
               />
               {form.reply_to.trim() && !isValidEmail(form.reply_to.trim()) ? (
-                <p className="text-[11px] text-red-600">Email invalido.</p>
+                <p className="text-[11px] text-red-600">E-mail inválido.</p>
               ) : null}
             </div>
             <div className="space-y-1 md:col-span-2 xl:col-span-2">
@@ -648,7 +656,7 @@ export function EmailTemplateBuilder({
                   <div className="mt-3 flex items-center gap-2">
                     <Input
                       type="email"
-                      placeholder="Email de teste (padrao: seu email)"
+                      placeholder="E-mail de teste (padrão: seu e-mail)"
                       value={testEmail}
                       onChange={(e) => setTestEmail(e.target.value)}
                       className="flex-1"
@@ -670,7 +678,7 @@ export function EmailTemplateBuilder({
           <AlertDialogHeader>
             <AlertDialogTitle>Substituir blocos?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todos os {blocks.length} blocos existentes serao substituidos pelo preset selecionado. Essa acao nao pode ser desfeita.
+              Todos os {blocks.length} blocos existentes serão substituídos pelo preset selecionado. Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

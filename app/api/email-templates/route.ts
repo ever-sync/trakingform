@@ -53,11 +53,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (fromEmail && !isValidEmail(fromEmail)) {
-    return NextResponse.json({ error: 'from_email invalido' }, { status: 400 })
+    return NextResponse.json({ error: 'from_email inválido' }, { status: 400 })
   }
 
   if (replyTo && !isValidEmail(replyTo)) {
-    return NextResponse.json({ error: 'reply_to invalido' }, { status: 400 })
+    return NextResponse.json({ error: 'reply_to inválido' }, { status: 400 })
   }
 
   const [template] = await db

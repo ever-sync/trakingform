@@ -295,7 +295,7 @@ export function RulesBuilder() {
 
   async function saveRule(rule: RuleItem) {
     if (rule.assignment.mode === 'fixed_user' && !rule.assignment.user_id) {
-      toast.error('Selecione um usuario para modo fixo.')
+      toast.error('Selecione um usuário para modo fixo.')
       return
     }
 
@@ -407,7 +407,7 @@ export function RulesBuilder() {
 
           <label className="flex items-center gap-2 text-sm">
             <Switch checked={testDryRun} onCheckedChange={setTestDryRun} />
-            Modo simulacao (nao altera owner nem grava log)
+            Modo simulação (não altera owner nem grava log)
           </label>
 
           {lastTestResult ? (

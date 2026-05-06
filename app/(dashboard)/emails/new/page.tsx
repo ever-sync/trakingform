@@ -30,12 +30,12 @@ export default function NewEmailTemplatePage() {
     }
 
     if (payload.from_email.trim() && !isValidEmail(payload.from_email.trim())) {
-      toast.error('from_email invalido.')
+      toast.error('from_email inválido.')
       return
     }
 
     if (payload.reply_to.trim() && !isValidEmail(payload.reply_to.trim())) {
-      toast.error('reply_to invalido.')
+      toast.error('reply_to inválido.')
       return
     }
 

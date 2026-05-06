@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
       .where(and(eq(recoveryCampaigns.id, body.id), eq(recoveryCampaigns.workspace_id, workspace.id)))
       .returning({ id: recoveryCampaigns.id })
 
-    if (!deleted) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    if (!deleted)
+      return NextResponse.json({ error: 'Campanha não encontrada.' }, { status: 404 })
     return NextResponse.json({ ok: true, id: deleted.id })
   }
 
@@ -53,18 +54,20 @@ export async function POST(req: NextRequest) {
     const [updated] = await db
       .update(recoveryCampaigns)
       .set({
-        name: body.name ?? 'Campanha de recuperacao',
+        name: body.name ?? 'Campanha de recuperação',
         is_active: body.is_active ?? true,
         channel: body.channel ?? 'whatsapp',
         delay_minutes: Number.isFinite(body.delay_minutes) ? Math.max(1, Number(body.delay_minutes)) : 30,
-        message_template: body.message_template ?? 'Voce quase concluiu seu cadastro. Retome por aqui: {{resume_url}}',
+        message_template:
+          body.message_template ?? 'Você quase concluiu seu cadastro. Retome por aqui: {{resume_url}}',
         conditions: Array.isArray(body.conditions) ? body.conditions : [],
         updated_at: new Date(),
       })
       .where(and(eq(recoveryCampaigns.id, body.id), eq(recoveryCampaigns.workspace_id, workspace.id)))
       .returning()
 
-    if (!updated) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    if (!updated)
+      return NextResponse.json({ error: 'Campanha não encontrada.' }, { status: 404 })
     return NextResponse.json(updated)
   }
 
@@ -72,11 +75,12 @@ export async function POST(req: NextRequest) {
     .insert(recoveryCampaigns)
     .values({
       workspace_id: workspace.id,
-      name: body.name ?? 'Campanha de recuperacao',
+      name: body.name ?? 'Campanha de recuperação',
       is_active: body.is_active ?? true,
       channel: body.channel ?? 'whatsapp',
       delay_minutes: Number.isFinite(body.delay_minutes) ? Math.max(1, Number(body.delay_minutes)) : 30,
-      message_template: body.message_template ?? 'Voce quase concluiu seu cadastro. Retome por aqui: {{resume_url}}',
+      message_template:
+        body.message_template ?? 'Você quase concluiu seu cadastro. Retome por aqui: {{resume_url}}',
       conditions: Array.isArray(body.conditions) ? body.conditions : [],
     })
     .returning()

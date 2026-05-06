@@ -438,7 +438,7 @@ export function LeadsClientWrapper() {
       setAppliedFilters(next)
       toast.success('Preset aplicado.')
     } catch {
-      toast.error('Preset invalido.')
+      toast.error('Preset inválido.')
     }
   }
 

@@ -57,7 +57,8 @@ export async function POST(
   }
 
   const recipientEmail = body.recipientEmail?.trim() || user.email
-  if (!recipientEmail) return NextResponse.json({ error: 'Email do destinatario nao informado.' }, { status: 400 })
+  if (!recipientEmail)
+    return NextResponse.json({ error: 'E-mail do destinatário não informado.' }, { status: 400 })
 
   const [template] = await db
     .select()
@@ -65,7 +66,7 @@ export async function POST(
     .where(and(eq(emailTemplates.id, id), eq(emailTemplates.workspace_id, workspace.id)))
     .limit(1)
 
-  if (!template) return NextResponse.json({ error: 'Template nao encontrado.' }, { status: 404 })
+  if (!template) return NextResponse.json({ error: 'Template não encontrado.' }, { status: 404 })
 
   const blocks = Array.isArray(template.blocks) ? (template.blocks as EmailBlock[]) : []
   const vars = { ...DEFAULT_PREVIEW_VARS, ...(body.variables ?? {}) }

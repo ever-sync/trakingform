@@ -37,7 +37,7 @@ export function OperationsActionsClient() {
       if (key === 'email') toast.success(`Email dispatch: ${data.sent ?? 0} enviado(s).`)
       router.refresh()
     } catch {
-      toast.error('Nao foi possivel executar a acao.')
+      toast.error('Não foi possível executar a ação.')
     } finally {
       setLoading(null)
     }

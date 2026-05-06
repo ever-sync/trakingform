@@ -81,14 +81,14 @@ export function EmailBlockEditor({
   const buttonUrl = block.type === 'button' ? String(block.url ?? '').trim() : ''
   const buttonUrlError =
     block.type === 'button' && buttonUrl
-      ? (!isValidUrl(buttonUrl) && !buttonUrl.includes('{{') ? 'URL invalida.' : null)
+      ? (!isValidUrl(buttonUrl) && !buttonUrl.includes('{{') ? 'URL inválida.' : null)
       : block.type === 'button'
         ? 'URL do botao obrigatoria.'
         : null
   const imageSrc = block.type === 'image' ? String(block.src ?? '').trim() : ''
   const imageSrcError =
     block.type === 'image' && imageSrc
-      ? (!isValidUrl(imageSrc) && !imageSrc.includes('{{') ? 'URL da imagem invalida.' : null)
+      ? (!isValidUrl(imageSrc) && !imageSrc.includes('{{') ? 'URL da imagem inválida.' : null)
       : block.type === 'image'
         ? 'URL da imagem obrigatoria.'
         : null

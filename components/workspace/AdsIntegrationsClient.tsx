@@ -87,9 +87,9 @@ export function AdsIntegrationsClient() {
           id: saved.id,
         },
       }))
-      toast.success(`Configuracao de ${platform} salva.`)
+      toast.success(`Configuração de ${platform} salva.`)
     } catch {
-      toast.error('Nao foi possivel salvar configuracao.')
+      toast.error('Não foi possível salvar configuração.')
     } finally {
       setSaving(null)
     }

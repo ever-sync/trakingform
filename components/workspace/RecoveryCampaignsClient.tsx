@@ -40,7 +40,7 @@ export function RecoveryCampaignsClient() {
         is_active: true,
         channel: 'whatsapp',
         delay_minutes: 30,
-        message_template: 'Voce quase concluiu seu cadastro. Retome por aqui: {{resume_url}}',
+        message_template: 'Você quase concluiu seu cadastro. Retome por aqui: {{resume_url}}',
       },
     ]))
   }

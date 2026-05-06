@@ -32,12 +32,12 @@ export function validateBuilderFields(fields: FormField[]): BuilderValidationRes
       const options = field.options ?? []
       const validOptions = options.filter((opt) => opt.label.trim().length > 0)
       if (validOptions.length < 1) {
-        errors.push('Adicione pelo menos 1 opcao valida.')
+        errors.push('Adicione pelo menos 1 opção válida.')
       }
     }
 
     if (field.validation?.minLength !== undefined && field.validation.minLength < 0) {
-      errors.push('Minimo de caracteres nao pode ser negativo.')
+      errors.push('Mínimo de caracteres não pode ser negativo.')
     }
 
     if (
@@ -45,14 +45,14 @@ export function validateBuilderFields(fields: FormField[]): BuilderValidationRes
       field.validation?.maxLength !== undefined &&
       field.validation.minLength > field.validation.maxLength
     ) {
-      errors.push('Minimo de caracteres nao pode ser maior que maximo.')
+      errors.push('Mínimo de caracteres não pode ser maior que máximo.')
     }
 
     if (field.validation?.pattern) {
       try {
         new RegExp(field.validation.pattern)
       } catch {
-        errors.push('Regex de validacao invalida.')
+        errors.push('Regex de validação inválida.')
       }
     }
 

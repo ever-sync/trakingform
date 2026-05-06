@@ -268,7 +268,7 @@ export default async function ChatEmbedPage({
             hideTyping();
 
             if (json && json.errors) {
-              addMessage('Algumas respostas estao invalidas. Por favor, tente novamente.', 'bot');
+              addMessage('Algumas respostas estão inválidas. Por favor, tente novamente.', 'bot');
               return;
             }
 
@@ -283,8 +283,8 @@ export default async function ChatEmbedPage({
             if (json && json.redirect_url) {
               window.top.location.href = json.redirect_url;
             } else {
-              addMessage((json && json.message) || 'Obrigado! Recebemos suas informacoes.', 'bot');
-              inputArea.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:13px;width:100%;">Conversa finalizada</p>';
+              addMessage((json && json.message) || 'Obrigado! Recebemos suas informações.', 'bot');
+              inputArea.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:13px;width:100%;">Conversa finalizada — obrigado!</p>';
             }
           } catch(err) {
             hideTyping();

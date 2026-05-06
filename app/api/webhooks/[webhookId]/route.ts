@@ -44,7 +44,7 @@ export async function PUT(
   if (body.name !== undefined) {
     const normalizedName = body.name.trim()
     if (!normalizedName) {
-      return NextResponse.json({ error: 'Nome nao pode ser vazio.' }, { status: 400 })
+      return NextResponse.json({ error: 'Nome não pode ser vazio.' }, { status: 400 })
     }
     updateData.name = normalizedName
   }
@@ -55,7 +55,7 @@ export async function PUT(
     try {
       parsedUrl = new URL(normalizedUrl)
     } catch {
-      return NextResponse.json({ error: 'URL invalida.' }, { status: 400 })
+      return NextResponse.json({ error: 'URL inválida.' }, { status: 400 })
     }
 
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
@@ -92,7 +92,7 @@ export async function PUT(
     .where(and(eq(webhookDestinations.id, webhookId), eq(webhookDestinations.workspace_id, workspace.id)))
     .returning()
 
-  if (!updated) return NextResponse.json({ error: 'Webhook nao encontrado.' }, { status: 404 })
+  if (!updated) return NextResponse.json({ error: 'Webhook não encontrado.' }, { status: 404 })
 
   revalidatePath('/webhooks')
   return NextResponse.json(updated)
@@ -119,7 +119,7 @@ export async function DELETE(
     .returning({ id: webhookDestinations.id })
 
   if (deleted.length === 0) {
-    return NextResponse.json({ error: 'Webhook nao encontrado.' }, { status: 404 })
+    return NextResponse.json({ error: 'Webhook não encontrado.' }, { status: 404 })
   }
 
   revalidatePath('/webhooks')

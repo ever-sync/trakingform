@@ -61,9 +61,9 @@ export default function WhatsAppConfigPage() {
         body: JSON.stringify(config),
       })
       if (!res.ok) throw new Error('Failed')
-      toast.success('Configuracao salva!')
+      toast.success('Configuração salva!')
     } catch {
-      toast.error('Erro ao salvar configuracao.')
+      toast.error('Erro ao salvar configuração.')
     } finally {
       setSaving(false)
     }
@@ -143,7 +143,7 @@ export default function WhatsAppConfigPage() {
                 value={config.min_score}
                 onChange={e => setConfig(prev => ({ ...prev, min_score: Number(e.target.value) }))}
               />
-              <p className="text-[11px] text-muted-foreground">Leads com score acima deste valor serao notificados</p>
+              <p className="text-[11px] text-muted-foreground">Leads com score acima deste valor serão notificados</p>
             </div>
           </div>
 
@@ -170,7 +170,7 @@ export default function WhatsAppConfigPage() {
 
           <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Salvar configuracao
+            Salvar configuração
           </Button>
         </CardContent>
       </Card>

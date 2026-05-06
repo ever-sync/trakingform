@@ -31,30 +31,30 @@ export function validateFormSubmission(
     const value = data[field.name]
 
     if (field.required && (value === undefined || value === null || value === '')) {
-      errors[field.name] = `${field.label} e obrigatorio`
+      errors[field.name] = `${field.label} é obrigatório`
       continue
     }
 
     if (!value) continue
 
     if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value))) {
-      errors[field.name] = `${field.label} deve ser um e-mail valido`
+      errors[field.name] = `${field.label} deve ser um e-mail válido`
     }
 
     if (field.type === 'phone' && !isValidPhone(value)) {
-      errors[field.name] = `${field.label} deve ser um telefone valido`
+      errors[field.name] = `${field.label} deve ser um telefone válido`
     }
 
     if (field.validation?.minLength && String(value).length < field.validation.minLength) {
-      errors[field.name] = `${field.label} deve ter no minimo ${field.validation.minLength} caracteres`
+      errors[field.name] = `${field.label} deve ter no mínimo ${field.validation.minLength} caracteres`
     }
 
     if (field.validation?.maxLength && String(value).length > field.validation.maxLength) {
-      errors[field.name] = `${field.label} deve ter no maximo ${field.validation.maxLength} caracteres`
+      errors[field.name] = `${field.label} deve ter no máximo ${field.validation.maxLength} caracteres`
     }
 
     if (field.validation?.pattern && !new RegExp(field.validation.pattern).test(String(value))) {
-      errors[field.name] = `${field.label} esta em formato invalido`
+      errors[field.name] = `${field.label} está em formato inválido`
     }
   }
 

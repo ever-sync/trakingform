@@ -128,7 +128,7 @@ export default function NewFormPage() {
               <Label htmlFor="name">Nome do formulario *</Label>
               <Input
                 id="name"
-                placeholder="Ex: Captacao de leads - Landing Page"
+                placeholder="Ex: Captação de leads — landing page"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required

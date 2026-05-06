@@ -76,7 +76,7 @@ export default function LoginPage() {
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail.trim())) {
-      toast.error('Informe um e-mail valido.')
+      toast.error('Informe um e-mail válido.')
       return
     }
     setResetLoading(true)
@@ -85,7 +85,9 @@ export default function LoginPage() {
     if (error) {
       toast.error(error.message)
     } else {
-      toast.success('Enviamos um link de recuperacao para seu e-mail. Verifique a caixa de entrada e o spam.')
+      toast.success(
+        'Enviamos um link de recuperação para seu e-mail. Verifique a caixa de entrada e o spam.'
+      )
       setShowResetModal(false)
       setResetEmail('')
       setResetEmailTouched(false)
@@ -302,7 +304,7 @@ export default function LoginPage() {
                 required
               />
               {resetEmailTouched && resetEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail.trim()) ? (
-                <p className="text-[12px] text-red-600 ml-1">E-mail invalido.</p>
+                <p className="text-[12px] text-red-600 ml-1">E-mail inválido.</p>
               ) : null}
             </div>
             <div className="mt-6 flex gap-2">

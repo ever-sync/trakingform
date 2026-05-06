@@ -88,7 +88,7 @@ export function EmailTemplatesClient({ templates: initial }: { templates: Templa
                     <AlertDialogHeader>
                       <AlertDialogTitle>Remover template?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        O template &quot;{template.name}&quot; sera removido permanentemente.
+                        O template &quot;{template.name}&quot; será removido permanentemente.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

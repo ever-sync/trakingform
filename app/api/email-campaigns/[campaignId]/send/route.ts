@@ -9,6 +9,7 @@ import {
   leads,
 } from '@/lib/db/schema'
 import { getRequestWorkspace } from '@/lib/api/auth-workspace'
+import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe-url'
 import { EmailBlock } from '@/types'
 import { enqueueEmailDispatch, getWorkspaceEmailSettings, processPendingEmailDispatches } from '@/lib/services/email/dispatcher'
 
@@ -200,7 +201,7 @@ export async function POST(
           from_name: template.from_name ?? settings.default_from_name ?? 'TrackingForm',
           from_email: template.from_email ?? settings.default_from_email ?? '',
           reply_to: template.reply_to ?? settings.default_reply_to ?? '',
-          unsubscribe_url: `${appUrl}/api/email/unsubscribe?workspace=${workspace.id}&email=${encodeURIComponent(recipient.email)}`,
+          unsubscribe_url: buildUnsubscribeUrl(appUrl, workspace.id, recipient.email),
         },
         triggerType: 'campaign_send',
         emailType: campaign.email_type === 'transactional' ? 'transactional' : 'marketing',

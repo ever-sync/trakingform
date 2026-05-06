@@ -1,20 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { leads } from '@/lib/db/schema'
+import { forms, leads } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
+import { isFormOriginAllowed } from '@/lib/security/form-origin'
+import { getFormProfileRatelimit } from '@/lib/services/form-public-ratelimit'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   const { formId } = await params
-  const body = await req.json() as { email?: string; fingerprint?: string }
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+
+  const limiter = getFormProfileRatelimit()
+  if (limiter) {
+    const { success } = await limiter.limit(`form-profile:${formId}:${ip}`)
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Muitas tentativas. Aguarde um minuto e tente novamente.' },
+        { status: 429 },
+      )
+    }
+  }
+
+  const form = await db.query.forms.findFirst({
+    where: eq(forms.id, formId),
+    columns: { id: true, allowed_domains: true, is_active: true },
+  })
+
+  if (!form || !form.is_active) {
+    return NextResponse.json({ error: 'Formulário não encontrado ou indisponível.' }, { status: 404 })
+  }
+
+  const allowed = form.allowed_domains as string[] | null | undefined
+  if (!isFormOriginAllowed(req, allowed)) {
+    return NextResponse.json(
+      { error: 'Este site não está autorizado a usar este formulário.' },
+      { status: 403 },
+    )
+  }
+
+  const body = (await req.json()) as { email?: string; fingerprint?: string }
 
   if (!body.email && !body.fingerprint) {
     return NextResponse.json({ known_fields: {} })
   }
 
-  // Find the most recent lead for this form with matching email or fingerprint
   const allLeads = await db
     .select({ data: leads.data, id: leads.id })
     .from(leads)
@@ -22,7 +53,6 @@ export async function POST(
     .orderBy(desc(leads.created_at))
     .limit(50)
 
-  // Search for matching lead by email in data
   let matchedData: Record<string, unknown> | null = null
 
   for (const lead of allLeads) {
@@ -38,7 +68,6 @@ export async function POST(
     }
   }
 
-  // Also try fingerprint match
   if (!matchedData && body.fingerprint) {
     const fpLeads = await db
       .select({ data: leads.data })
@@ -56,7 +85,6 @@ export async function POST(
     return NextResponse.json({ known_fields: {} })
   }
 
-  // Filter out internal fields
   const known_fields: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(matchedData)) {
     if (!key.startsWith('_') && value !== null && value !== undefined && String(value).trim()) {

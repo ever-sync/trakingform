@@ -193,7 +193,9 @@ export function EmailSuppressionsClient() {
       if (!res.ok) throw new Error(data.error || 'Falha ao importar')
 
       setImportText('')
-      toast.success(`Importacao concluida: ${data.imported ?? 0} valido(s), ${data.invalid ?? 0} invalido(s).`)
+      toast.success(
+        `Importação concluída: ${data.imported ?? 0} válido(s), ${data.invalid ?? 0} inválido(s).`
+      )
       await loadList(1)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha ao importar e-mails')
